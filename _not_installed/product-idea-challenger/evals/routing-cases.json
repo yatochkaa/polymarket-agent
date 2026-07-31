@@ -1,0 +1,110 @@
+{
+  "skill": "product-idea-challenger",
+  "cases": [
+    {
+      "id": "product-idea-challenger-01",
+      "category": "positive",
+      "prompt": "What should I build next?",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for product-idea-challenger"
+    },
+    {
+      "id": "product-idea-challenger-02",
+      "category": "positive",
+      "prompt": "Rank these SaaS feature ideas",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for product-idea-challenger"
+    },
+    {
+      "id": "product-idea-challenger-03",
+      "category": "positive",
+      "prompt": "How can this project become more valuable to clients?",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for product-idea-challenger"
+    },
+    {
+      "id": "product-idea-challenger-04",
+      "category": "positive",
+      "prompt": "Challenge my plan to add an AI assistant",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for product-idea-challenger"
+    },
+    {
+      "id": "product-idea-challenger-05",
+      "category": "positive",
+      "prompt": "Create a two-week product roadmap",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for product-idea-challenger"
+    },
+    {
+      "id": "product-idea-challenger-06",
+      "category": "negative",
+      "prompt": "Fix this failing test",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for product-idea-challenger"
+    },
+    {
+      "id": "product-idea-challenger-07",
+      "category": "negative",
+      "prompt": "Implement the selected endpoint",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for product-idea-challenger"
+    },
+    {
+      "id": "product-idea-challenger-08",
+      "category": "negative",
+      "prompt": "Review authorization in this route",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for product-idea-challenger"
+    },
+    {
+      "id": "product-idea-challenger-09",
+      "category": "negative",
+      "prompt": "Adjust form padding",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for product-idea-challenger"
+    },
+    {
+      "id": "product-idea-challenger-10",
+      "category": "negative",
+      "prompt": "Explain this traceback",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for product-idea-challenger"
+    },
+    {
+      "id": "product-idea-challenger-11",
+      "category": "ambiguous",
+      "prompt": "Improve the product",
+      "expected": "ask clarification",
+      "conflicts": [],
+      "reason": "ambiguous routing case for product-idea-challenger"
+    },
+    {
+      "id": "product-idea-challenger-12",
+      "category": "ambiguous",
+      "prompt": "Add analytics",
+      "expected": "ask clarification",
+      "conflicts": [],
+      "reason": "ambiguous routing case for product-idea-challenger"
+    },
+    {
+      "id": "product-idea-challenger-13",
+      "category": "ambiguous",
+      "prompt": "Make this portfolio-ready",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "ambiguous routing case for product-idea-challenger"
+    }
+  ],
+  "precedence": "Runs before implementation skills when the product decision is unresolved."
+}

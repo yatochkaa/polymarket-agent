@@ -1,0 +1,110 @@
+{
+  "skill": "frontend-product-quality",
+  "cases": [
+    {
+      "id": "frontend-product-quality-01",
+      "category": "positive",
+      "prompt": "Design an accessible onboarding form",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for frontend-product-quality"
+    },
+    {
+      "id": "frontend-product-quality-02",
+      "category": "positive",
+      "prompt": "Improve this dashboard hierarchy",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for frontend-product-quality"
+    },
+    {
+      "id": "frontend-product-quality-03",
+      "category": "positive",
+      "prompt": "Add loading and error states to this page",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for frontend-product-quality"
+    },
+    {
+      "id": "frontend-product-quality-04",
+      "category": "positive",
+      "prompt": "Review keyboard navigation in this modal",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for frontend-product-quality"
+    },
+    {
+      "id": "frontend-product-quality-05",
+      "category": "positive",
+      "prompt": "Make this data table usable on mobile",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for frontend-product-quality"
+    },
+    {
+      "id": "frontend-product-quality-06",
+      "category": "negative",
+      "prompt": "Optimize this database query",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for frontend-product-quality"
+    },
+    {
+      "id": "frontend-product-quality-07",
+      "category": "negative",
+      "prompt": "Review webhook signatures",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for frontend-product-quality"
+    },
+    {
+      "id": "frontend-product-quality-08",
+      "category": "negative",
+      "prompt": "Write an Alembic migration",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for frontend-product-quality"
+    },
+    {
+      "id": "frontend-product-quality-09",
+      "category": "negative",
+      "prompt": "Generate product ideas",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for frontend-product-quality"
+    },
+    {
+      "id": "frontend-product-quality-10",
+      "category": "negative",
+      "prompt": "Change a backend response model",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for frontend-product-quality"
+    },
+    {
+      "id": "frontend-product-quality-11",
+      "category": "ambiguous",
+      "prompt": "Improve this form",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "ambiguous routing case for frontend-product-quality"
+    },
+    {
+      "id": "frontend-product-quality-12",
+      "category": "ambiguous",
+      "prompt": "Fix the frontend",
+      "expected": "ask clarification",
+      "conflicts": [],
+      "reason": "ambiguous routing case for frontend-product-quality"
+    },
+    {
+      "id": "frontend-product-quality-13",
+      "category": "ambiguous",
+      "prompt": "Change the API used by this page",
+      "expected": "ask clarification",
+      "conflicts": [],
+      "reason": "ambiguous routing case for frontend-product-quality"
+    }
+  ],
+  "precedence": "Compose with repository-change when code is edited; backend-security-guard owns authorization and sensitive-data decisions."
+}

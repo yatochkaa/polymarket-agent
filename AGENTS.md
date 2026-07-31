@@ -78,3 +78,13 @@ Violating these requires rework:
   - likely,
   - assumption.
 - Do not present copy-trading as the main strategy; it is a hypothesis to test, not an accepted premise.
+
+PREREGISTRATION.md — read-only. Не предлагать изменения критериев,
+порогов и исходов. Если считаешь критерий неверным — сказать один раз
+и продолжить работу по нему.
+
+## Обязательное завершение любой задачи
+В конце сессии дописать в PROGRESS.md: дату, что сделано,
+что не сделано и почему. Если файла нет — создать.
+Не коммитить и не пушить. Решения, которые не можешь
+принять сам, дописывать в DECISIONS_NEEDED.md.

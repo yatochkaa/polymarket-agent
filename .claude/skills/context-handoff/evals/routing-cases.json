@@ -1,0 +1,110 @@
+{
+  "skill": "context-handoff",
+  "cases": [
+    {
+      "id": "context-handoff-01",
+      "category": "positive",
+      "prompt": "Create a handoff before I clear context",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for context-handoff"
+    },
+    {
+      "id": "context-handoff-02",
+      "category": "positive",
+      "prompt": "Prepare a resume prompt for a new session",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for context-handoff"
+    },
+    {
+      "id": "context-handoff-03",
+      "category": "positive",
+      "prompt": "Summarize current implementation state for another agent",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for context-handoff"
+    },
+    {
+      "id": "context-handoff-04",
+      "category": "positive",
+      "prompt": "I am pausing; capture exact next steps",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for context-handoff"
+    },
+    {
+      "id": "context-handoff-05",
+      "category": "positive",
+      "prompt": "Compact this long task into a continuation note",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for context-handoff"
+    },
+    {
+      "id": "context-handoff-06",
+      "category": "negative",
+      "prompt": "Summarize this article",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for context-handoff"
+    },
+    {
+      "id": "context-handoff-07",
+      "category": "negative",
+      "prompt": "Implement a feature",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for context-handoff"
+    },
+    {
+      "id": "context-handoff-08",
+      "category": "negative",
+      "prompt": "Review backend security",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for context-handoff"
+    },
+    {
+      "id": "context-handoff-09",
+      "category": "negative",
+      "prompt": "Generate a roadmap",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for context-handoff"
+    },
+    {
+      "id": "context-handoff-10",
+      "category": "negative",
+      "prompt": "Explain a traceback",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for context-handoff"
+    },
+    {
+      "id": "context-handoff-11",
+      "category": "ambiguous",
+      "prompt": "Summarize where we are",
+      "expected": "ask clarification",
+      "conflicts": [],
+      "reason": "ambiguous routing case for context-handoff"
+    },
+    {
+      "id": "context-handoff-12",
+      "category": "ambiguous",
+      "prompt": "Save context",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "ambiguous routing case for context-handoff"
+    },
+    {
+      "id": "context-handoff-13",
+      "category": "ambiguous",
+      "prompt": "Write project documentation",
+      "expected": "ask clarification",
+      "conflicts": [],
+      "reason": "ambiguous routing case for context-handoff"
+    }
+  ],
+  "precedence": "Manual invocation only; use near context boundaries, not as a general summarizer."
+}

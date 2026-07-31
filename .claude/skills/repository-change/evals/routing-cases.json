@@ -1,0 +1,110 @@
+{
+  "skill": "repository-change",
+  "cases": [
+    {
+      "id": "repository-change-01",
+      "category": "positive",
+      "prompt": "Implement this endpoint and update its tests",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for repository-change"
+    },
+    {
+      "id": "repository-change-02",
+      "category": "positive",
+      "prompt": "Refactor this service without changing its API",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for repository-change"
+    },
+    {
+      "id": "repository-change-03",
+      "category": "positive",
+      "prompt": "Debug why this integration test now fails",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for repository-change"
+    },
+    {
+      "id": "repository-change-04",
+      "category": "positive",
+      "prompt": "Change this persistence behavior across repository and service",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for repository-change"
+    },
+    {
+      "id": "repository-change-05",
+      "category": "positive",
+      "prompt": "Review my current code change before merge",
+      "expected": "activate",
+      "conflicts": [],
+      "reason": "positive routing case for repository-change"
+    },
+    {
+      "id": "repository-change-06",
+      "category": "negative",
+      "prompt": "Suggest names for this product",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for repository-change"
+    },
+    {
+      "id": "repository-change-07",
+      "category": "negative",
+      "prompt": "Change the button color",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for repository-change"
+    },
+    {
+      "id": "repository-change-08",
+      "category": "negative",
+      "prompt": "Translate this paragraph",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for repository-change"
+    },
+    {
+      "id": "repository-change-09",
+      "category": "negative",
+      "prompt": "Explain what an index is",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for repository-change"
+    },
+    {
+      "id": "repository-change-10",
+      "category": "negative",
+      "prompt": "Summarize this article",
+      "expected": "do not activate",
+      "conflicts": [],
+      "reason": "negative routing case for repository-change"
+    },
+    {
+      "id": "repository-change-11",
+      "category": "ambiguous",
+      "prompt": "Improve this module",
+      "expected": "ask clarification",
+      "conflicts": [],
+      "reason": "ambiguous routing case for repository-change"
+    },
+    {
+      "id": "repository-change-12",
+      "category": "ambiguous",
+      "prompt": "Make the project cleaner",
+      "expected": "ask clarification",
+      "conflicts": [],
+      "reason": "ambiguous routing case for repository-change"
+    },
+    {
+      "id": "repository-change-13",
+      "category": "ambiguous",
+      "prompt": "Fix the architecture",
+      "expected": "ask clarification",
+      "conflicts": [],
+      "reason": "ambiguous routing case for repository-change"
+    }
+  ],
+  "precedence": "After backend-security-guard for security-sensitive changes; otherwise primary implementation workflow."
+}
