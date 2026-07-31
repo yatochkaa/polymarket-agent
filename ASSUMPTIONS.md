@@ -271,3 +271,5 @@ NO-GO будет означать "нет копируемого edge НА УР�
   крипта 0.07; exponent 1; takerOnly). НО ребейты и число категорий (8, не 4)
   расходятся с записанным -> заменить fee_rate(vertical) на feeSchedule.rate
   per-market.
+
+- 2026-07-31 (item 6): ФАКТ (probe) — /markets/keyset ТОЖЕ молча игнорирует tag_slug (tag_slug=tennis вернул политику 2020 г.). Тегированная фильтрация только через /events?tag_slug=. Реализовано: iter_events (нарезка по датам) + iter_markets_keyset (курсор next_cursor) + iter_markets(tag=...) теперь падает RuntimeError.

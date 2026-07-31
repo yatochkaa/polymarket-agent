@@ -1,34 +1,33 @@
 """Э4. Теннис: объём, частота разрешений, доля споров UMA за 90 дней.
 
-Назначение: это гейт осуществимости цели B и основа цели C.
-Если теннисный сегмент слишком тонкий, исследование B завершается как
-UNDECIDABLE ПО МОЩНОСТИ ещё до сбора поведенческих данных -- и это дёшевый
-вывод, который честно сделать первым.
+Назначение: гейт осуществимости цели B и основа цели C.
+Единица наблюдения — ОДИНОЧНЫЙ матч (Уточнение 1, 2026-07-31). Парные матчи
+(-doubles-) исключены из мощности и идут разведочной веткой вне GO/NO-GO.
 
-Ключевой расчёт мощности: число РАЗРЕШЁННЫХ теннисных событий за 90 дней
-задаёт верхнюю границу числа кластеров. Если событий мало, то любой
-отдельный трейдер имеет ещё меньше, и кластерные SE будут такими
-широкими, что критерий 2.5*sqrt(...) недостижим при реалистичном edge.
+Ключевой расчёт мощности: число РАЗРЕШЁННЫХ одиночных теннисных матчей за
+90 дней задаёт верхнюю границу числа кластеров.
+
+Источник данных (probe 2026-07-31): Gamma /markets игнорирует tag_slug,
+поэтому теннис берём через iter_events(/events?tag_slug=tennis) с нарезкой
+по датам. Матч = событие, слаг которого совпадает с маской _MATCH_SLUG.
 
 Статус знания:
-- (в) Способ узнать факт спора UMA через поля Gamma (umaResolutionStatus,
-  hasReviewedDates, disputed) -- предположение. Модуль собирает все
-  кандидатные поля и выводит их заполненность, чтобы видеть, измерена
-  ли величина вообще. Доля споров, вычисленная по полю, которое
-  заполнено у 3% рынков, НЕ является долей споров.
+- (в) Способ узнать факт спора UMA через поля Gamma — предположение. Модуль
+  собирает кандидатные поля и выводит их заполненность. Доля споров по
+  полю, заполненному у 3% рынков, НЕ является долей споров.
 """
 
 from __future__ import annotations
 
 import logging
-import math
+import re
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from ..config import Settings
 from ..httpc import ReadClient
-from ..markets import Market, iter_markets
+from ..markets import Market, iter_events, markets_from_event
 
 log = logging.getLogger(__name__)
 
@@ -42,6 +41,18 @@ _DISPUTE_FIELDS: tuple[str, ...] = (
     "resolutionSource",
 )
 _TENNIS_TAGS: tuple[str, ...] = ("tennis", "atp", "wta", "grand-slam")
+
+# Маска матчевого слага. Единица = одиночный матч (Уточнение 1): парные
+# (-doubles-) в основную популяцию не входят.
+_MATCH_SLUG = re.compile(r"^(atp|wta)-.*\d{4}-\d{2}-\d{2}$")
+
+
+def _is_singles_match(slug: str | None) -> bool:
+    return bool(slug) and bool(_MATCH_SLUG.match(slug)) and "-doubles-" not in slug
+
+
+def _is_doubles_match(slug: str | None) -> bool:
+    return bool(slug) and bool(_MATCH_SLUG.match(slug)) and "-doubles-" in slug
 
 
 @dataclass(slots=True)
@@ -61,6 +72,8 @@ class E4Report:
     dispute_share_is_measurable: bool
     power_note: str
     max_clusters_available: int
+    n_singles_matches: int = 0
+    n_doubles_matches: int = 0
     notes: list[str] = field(default_factory=list)
 
 
@@ -86,19 +99,13 @@ def is_tennis(m: Market) -> bool:
     return any(t in hay for t in _TENNIS_TAGS)
 
 
-def power_note(n_markets: int) -> str:
-    """Формулирует факт по числу разрешённых рынков в окне.
-
-    Args:
-        n_markets: число разрешённых теннисных рынков в окне.
-
-    Returns:
-        Строка с фактическим описанием доступного объёма данных.
-    """
+def power_note(n_matches: int) -> str:
+    """Факт по числу разрешённых одиночных матчей в окне."""
     return (
-        f"Всего {n_markets} разрешённых рынков в окне. Потолок кластеров = "
-        f"{n_markets}. Гейт G4 (>= 100 матчей на трейдера) на этапе Э4 не "
-        "проверяется: нет данных по адресам. Проверяется на этапе 4 в фильтре 1."
+        f"Всего {n_matches} разрешённых одиночных теннисных матчей в окне "
+        f"(единица наблюдения). Потолок кластеров = {n_matches}. Гейт G4 "
+        "(>= 100 матчей на трейдера) на этапе Э4 не проверяется: нет данных "
+        "по адресам. Проверяется на этапе 4 в фильтре 1."
     )
 
 
@@ -108,69 +115,59 @@ def run(
     window_days: int = 90,
     low_volume_threshold: float = 1000.0,
 ) -> E4Report:
-    """Собирает профиль теннисного сегмента через Gamma (только чтение).
+    """Профиль теннисного сегмента через Gamma (только чтение).
 
-    Args:
-        settings: настройки.
-        gamma: клиент Gamma API.
-        window_days: размер окна в днях.
-        low_volume_threshold: граница "тонкого" рынка, USD/сутки.
-
-    Returns:
-        E4Report.
+    Единица = одиночный матч (Уточнение 1). Матчи — события /events с тегом
+    tennis, слаг которых совпадает с _MATCH_SLUG и не содержит -doubles-.
+    Объём и признаки спора считаются на уровне рынков ВНУТРИ этих матчей
+    (у события полей volume24hr/umaResolutionStatus нет).
     """
-    cutoff = datetime.now(timezone.utc) - timedelta(days=window_days)
-    markets: list[Market] = []
-    for tag in _TENNIS_TAGS:
-        for m in iter_markets(gamma, tag=tag, max_pages=10):
-            markets.append(m)
-    # Сервер может игнорировать tag_slug -- фильтруем локально и дедуплицируем.
-    uniq: dict[str, Market] = {}
-    for m in markets:
-        if is_tennis(m):
-            uniq[m.condition_id or (m.slug or repr(m.raw)[:64])] = m
-    tennis = list(uniq.values())
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=window_days)
     notes: list[str] = []
-    if not tennis:
+
+    events = list(
+        iter_events(gamma, tag="tennis", start=cutoff, end=now, closed=True)
+    )
+
+    singles: dict[str, dict[str, Any]] = {}
+    doubles: dict[str, dict[str, Any]] = {}
+    for ev in events:
+        slug = ev.get("slug")
+        if _is_singles_match(slug):
+            singles[slug] = ev
+        elif _is_doubles_match(slug):
+            doubles[slug] = ev
+
+    if not singles:
         notes.append(
-            "Gamma не вернул теннисных рынков ни по одному тегу. Сначала "
-            "проверьте имя параметра тега, прежде чем делать вывод о объёме."
+            "iter_events не вернул одиночных теннисных матчей в окне. Проверьте "
+            "окно и маску слага прежде, чем делать вывод о мощности."
         )
 
-    def resolved_in_window(m: Market) -> bool:
-        raw = m.raw
-        for key in ("endDate", "resolvedAt", "closedTime", "end_date_iso"):
-            v = raw.get(key)
-            if isinstance(v, str):
-                try:
-                    dt = datetime.fromisoformat(v.replace("Z", "+00:00"))
-                except ValueError:
-                    continue
-                if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
-                return bool(m.closed) and dt >= cutoff
-        return False
+    match_markets: list[Market] = []
+    for ev in singles.values():
+        match_markets.extend(markets_from_event(ev))
 
-    resolved = [m for m in tennis if resolved_in_window(m)]
-    vols = [m.volume_24h for m in tennis if m.volume_24h is not None]
+    vols = [m.volume_24h for m in match_markets if m.volume_24h is not None]
 
     coverage: dict[str, float] = {}
     for f in _DISPUTE_FIELDS:
-        present = sum(1 for m in tennis if m.raw.get(f) not in (None, "", []))
-        coverage[f] = (present / len(tennis)) if tennis else 0.0
+        present = sum(1 for m in match_markets if m.raw.get(f) not in (None, "", []))
+        coverage[f] = (present / len(match_markets)) if match_markets else 0.0
 
     best_field = max(coverage, key=lambda k: coverage[k]) if coverage else ""
-    measurable = bool(tennis) and coverage.get(best_field, 0.0) >= 0.5
+    measurable = bool(match_markets) and coverage.get(best_field, 0.0) >= 0.5
     dispute_share: float | None = None
-    if measurable and resolved:
+    if measurable and match_markets:
         disputed = 0
-        for m in resolved:
+        for m in match_markets:
             v = m.raw.get(best_field)
             if isinstance(v, bool):
                 disputed += int(v)
             elif isinstance(v, str):
                 disputed += int("disput" in v.lower())
-        dispute_share = disputed / len(resolved)
+        dispute_share = disputed / len(match_markets)
     else:
         notes.append(
             "Доля споров UMA НЕ ИЗМЕРЕНА: ни одно поле признака спора не "
@@ -178,12 +175,18 @@ def run(
             "оракула UMA по адресу адаптера в Polygon. Не подставлять 0."
         )
 
+    notes.append(
+        f"Единица = одиночный матч (Уточнение 1, 2026-07-31). Парные "
+        f"({len(doubles)}) исключены из мощности как разведочная ветка."
+    )
+
+    n_singles = len(singles)
     weeks = window_days / 7
     return E4Report(
         window_days=window_days,
-        n_markets=len(tennis),
-        n_resolved=len(resolved),
-        resolutions_per_week=(len(resolved) / weeks) if weeks else None,
+        n_markets=len(match_markets),
+        n_resolved=n_singles,
+        resolutions_per_week=(n_singles / weeks) if weeks else None,
         volume_24h_total=sum(vols) if vols else None,
         volume_24h_median=_median(vols),
         volume_24h_p90=_quantile(vols, 0.9),
@@ -195,8 +198,10 @@ def run(
         dispute_field_coverage=coverage,
         dispute_share=dispute_share,
         dispute_share_is_measurable=measurable,
-        power_note=power_note(len(resolved)),
-        max_clusters_available=len(resolved),
+        power_note=power_note(n_singles),
+        max_clusters_available=n_singles,
+        n_singles_matches=n_singles,
+        n_doubles_matches=len(doubles),
         notes=notes,
     )
 
