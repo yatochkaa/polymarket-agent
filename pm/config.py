@@ -97,3 +97,13 @@ def load_settings() -> Settings:
     s = Settings()
     s.data_dir.mkdir(parents=True, exist_ok=True)
     return s
+
+# --- Popravka 2 (2026-07-31): correct E1 method (prices-history vs live /book). Frozen before run.
+# Staryj E1 (E1_SIGMA_BOOK_MAX / E1_DRIFT_TRADE_MIN) nevaliden (A8) -> ne ispolzuetsya.
+E1_LIVE_SAMPLES: Final[int] = 40
+E1_LIVE_INTERVAL_S: Final[float] = 30.0
+E1_ALIGN_WINDOW_S: Final[int] = 90
+E1_MATCH_TICK_FRAC: Final[float] = 0.5
+E1_MIN_DIVERGENT: Final[int] = 30
+E1_MATCH_RATE_MIN: Final[float] = 0.90
+E1_CROSS_RATE_MAX: Final[float] = 0.10
