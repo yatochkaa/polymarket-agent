@@ -26,7 +26,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from ..config import MIN_EVENTS_PER_TRADER, Settings
+from ..config import Settings
 from ..httpc import ReadClient
 from ..markets import Market, iter_markets
 
@@ -86,26 +86,19 @@ def is_tennis(m: Market) -> bool:
     return any(t in hay for t in _TENNIS_TAGS)
 
 
-def power_note(n_events: int, min_events: int = MIN_EVENTS_PER_TRADER) -> str:
-    """Формулирует вывод о мощности исследования Цели B.
+def power_note(n_markets: int) -> str:
+    """Формулирует факт по числу разрешённых рынков в окне.
 
     Args:
-        n_events: число разрешённых теннисных событий в окне.
-        min_events: минимум событий на трейдера для включения в ранжирование.
+        n_markets: число разрешённых теннисных рынков в окне.
 
     Returns:
-        Строка с явным выводом о достижимости решения GO.
+        Строка с фактическим описанием доступного объёма данных.
     """
-    if n_events < min_events:
-        return (
-            f"Всего {n_events} разрешённых событий в окне против порога "
-            f"{min_events} на ОДНОГО трейдера. Гейт G1 НЕ ПРОЙДЕН: цель B закрывается "
-            "как UNDECIDABLE по мощности без сбора поведенческих данных."
-        )
     return (
-        f"{n_events} разрешённых событий в окне. Потолок кластеров = {n_events}; "
-        f"трейдер попадает в ранжирование только при >= {min_events} собственных "
-        "событий. Ожидаемая ширина кластерного SE пропорциональна 1/sqrt(n)."
+        f"Всего {n_markets} разрешённых рынков в окне. Потолок кластеров = "
+        f"{n_markets}. Гейт G4 (>= 100 матчей на трейдера) на этапе Э4 не "
+        "проверяется: нет данных по адресам. Проверяется на этапе 4 в фильтре 1."
     )
 
 

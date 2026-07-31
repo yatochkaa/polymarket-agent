@@ -41,7 +41,7 @@ E1_DRIFT_TRADE_MIN: Final[float] = 0.02
 WIDE_SPREAD_THRESHOLD: Final[float] = 0.10  # (а) выше него отображается last trade
 DECISION_K: Final[float] = 2.5  # коэффициент в критерии GO
 FDR_Q: Final[float] = 0.10  # BH-FDR уровень
-MIN_EVENTS_PER_TRADER: Final[int] = 30  # гейт включения трейдера в ранжирование
+MIN_EVENTS_PER_TRADER: Final[int] = 100  # гейт включения трейдера в ранжирование
 
 
 class Settings(BaseSettings):
