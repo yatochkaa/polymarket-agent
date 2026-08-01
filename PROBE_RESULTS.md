@@ -87,3 +87,30 @@ A8 (сумма дополняющих ног как различитель ба�
 
 ОТКРЫТО: считать ли atp-doubles-* отдельной единицей. 1702 парных пока
 НЕ включены и НЕ исключены до явного решения (см. DECISIONS_NEEDED).
+
+> Прогон 2026-08-01T04:15:05Z вернул 0 наблюдений (n=0): сортировка /events по умолчанию отдавала старые рынки (US Open 2025), offset=2100 упёрся в лимит gamma (HTTP 422) до достижения окна 90 дней — все 1509 singles попали в out_of_window. Исправлено: order=startDate&ascending=false + ранний стоп по пустой странице.
+
+## Tennis last-trade staleness probe -- 2026-08-01T04:20:31.202433+00:00
+
+Question: (resolution_time - last_trade_time) for closed SINGLES tennis matches.
+Params: tags=['tennis'] lookback_days=90 target_n=100 stale_threshold_min=30 exclude=['doubles']
+Resolution field priority: ['closedTime', 'umaEndDate', 'endDateIso', 'endDate']
+
+RESULT (n=100):
+  median      = 22.7 min
+  p25         = 9.5 min
+  p75         = 31.1 min
+  p90         = 41.8 min
+  gap > 30 min = 32.0% of matches
+  min/max gap = 0.1 / 89.2 min
+
+resolution_field used: {"closedTime": 100}
+counters: events=103 markets_seen=1534 singles_closed=100 no_resolution=0 out_of_window=0 not_binary=0 no_trades=0
+
+DIAGNOSTIC time-like keys (first 3 singles markets -- verify resolution semantics):
+  itf-dellave-jasika-2026-08-01
+    {"resolutionSource": "https://www.itftennis.com/en/tournament-calendar/", "endDate": "2026-08-08T01:00:00Z", "startDate": "2026-07-31T22:00:19Z", "closed": true, "updatedAt": "2026-08-01T03:51:41.427966Z", "closedTime": "2026-08-01 03:50:41+00", "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7", "umaEndDate": "2026-08-01T03:50:41Z", "umaResolutionStatus": "resolved", "endDateIso": "2026-08-08", "startDateIso": "2026-07-31", "hasReviewedDates": true, "gameStartTime": "2026-08-01 01:00:00+00", "acceptingOrdersTimestamp": "2026-07-31T22:00:19Z", "automaticallyResolved": true, "umaResolutionStatuses": "[\"proposed\"]", "pendingDeployment": false, "deployingTimestamp": "2026-07-31T22:00:05.312656Z"}
+  itf-tsao-uemura-2026-08-01
+    {"resolutionSource": "https://www.itftennis.com/en/tournament-calendar/", "endDate": "2026-08-08T01:00:00Z", "startDate": "2026-07-31T22:00:15Z", "closed": true, "updatedAt": "2026-08-01T03:26:58.360476Z", "closedTime": "2026-08-01 03:25:57+00", "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7", "umaEndDate": "2026-08-01T03:25:57Z", "umaResolutionStatus": "resolved", "endDateIso": "2026-08-08", "startDateIso": "2026-07-31", "hasReviewedDates": true, "gameStartTime": "2026-08-01 01:00:00+00", "acceptingOrdersTimestamp": "2026-07-31T22:00:15Z", "automaticallyResolved": true, "umaResolutionStatuses": "[\"proposed\"]", "pendingDeployment": false, "deployingTimestamp": "2026-07-31T22:00:03.922064Z"}
+  itf-eunhyel-crawley-2026-07-31
+    {"resolutionSource": "https://www.itftennis.com/en/tournament-calendar/", "endDate": "2026-08-07T18:00:00Z", "startDate": "2026-07-31T10:00:36Z", "closed": true, "updatedAt": "2026-08-01T04:15:09.925891Z", "closedTime": "2026-07-31 20:22:14+00", "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7", "umaEndDate": "2026-07-31T20:22:14Z", "umaResolutionStatus": "resolved", "endDateIso": "2026-08-07", "startDateIso": "2026-07-31", "hasReviewedDates": true, "gameStartTime": "2026-07-31 18:00:00+00", "acceptingOrdersTimestamp": "2026-07-31T10:00:36Z", "automaticallyResolved": true, "umaResolutionStatuses": "[\"proposed\"]", "pendingDeployment": false, "deployingTimestamp": "2026-07-31T10:00:25.165038Z"}
