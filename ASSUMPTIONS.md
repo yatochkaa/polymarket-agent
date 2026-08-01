@@ -275,3 +275,25 @@ NO-GO будет означать "нет копируемого edge НА УР�
 - 2026-07-31 (item 6): ФАКТ (probe) — /markets/keyset ТОЖЕ молча игнорирует tag_slug (tag_slug=tennis вернул политику 2020 г.). Тегированная фильтрация только через /events?tag_slug=. Реализовано: iter_events (нарезка по датам) + iter_markets_keyset (курсор next_cursor) + iter_markets(tag=...) теперь падает RuntimeError.
 
 - 2026-07-31 (items 6-7 validated): smoke_e4.py против живого Gamma через pm.ReadClient, iter_events(tag=tennis, closed, 90d): singles=5257, doubles=1714, other=8074, утечка=0 (TAG_FILTER_OK). Сходится с probe (~5266/~1702). Клиентский путь подтверждён на данных.
+
+<!-- ASSUMPTION-BLOCKTIME-2026-08-01 -->
+## Допущение 2026-08-01 — block-time Polygon (поправка)
+
+Измерено live через eth_getBlockByNumber (diag_getlogs_bench.py, latest_block=91238915): средний block-time ≈ 1.5 с на выборке 20000 блоков.
+Следствие: **57 600 блоков/сутки**, 90 дней ≈ **5.18 млн блоков**.
+Отменяет прежнюю оценку ~43 200 блоков/сутки (2 с/блок) — она была занижена примерно на треть.
+Все расчёты диапазонов блоков (сканы логов, поиск блока по timestamp) используют 57 600/сутки.
+
+<!-- ASSUMPTION-ORDERFILLED-DATA-2026-08-01 -->
+## Dopushchenie 2026-08-01 -- OrderFilled raskladka (podtverzhdeno keccak256)
+
+keccak256("OrderFilled(bytes32,address,address,uint8,uint256,uint256,uint256,uint256,bytes32,bytes32)")
+= 0xd543adfd945773f1a62f74f0ee55a5e3b9b1a28262980ba90b1a89f2ea84d8ee -- SOVPADAET s nashim topic0.
+Znachit raskladka iz dekodera poly_data -- FAKT, ne gipoteza:
+- topics[0]=signature; topics[1]=orderHash (bytes32, NE adres);
+  topics[2]=maker (address); topics[3]=taker (address).
+- data (7 slov): w0=side (0=BUY,1=SELL, storona MEJKERA), w1=tokenId,
+  w2=makerAmountFilled, w3=takerAmountFilled, w4=fee, **w5=builder (bytes32)**, **w6=metadata (bytes32)**.
+Otmenyaet prezhnee "w5/w6=0 po opredeleniyu": eto builder/metadata (chasto nuli, no ne po opredeleniyu).
+Adresa maker/taker indeksirovany (topics[2]/topics[3]) -> HyperSync filtruet po koshelku na svoey storone.
+
