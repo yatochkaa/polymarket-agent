@@ -1,0 +1,32 @@
+[Unit]
+Description=Polymarket personal order-book collector (read-only, no orders)
+Documentation=https://github.com/Polymarket/py-sdk
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pm
+Group=pm
+WorkingDirectory=/srv/pm-terminal
+# Ставим только сам коллектор. Никаких ордеров: pm/broker.py отсутствует.
+ExecStart=/srv/pm-terminal/.venv/bin/python -m src.collect.ws_collector --minutes 0
+# --minutes 0 = бесконечный сбор (останавливается только стопом/падением);
+# лимит памяти при обрыве рыночного потока отсутствует — Restart с задержкой.
+Restart=on-failure
+RestartSec=15
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONPATH=/srv/pm-terminal
+
+# Безопасность: минимум прав, нет сети наружу, нет чтения ключей.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/srv/pm-terminal/data
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

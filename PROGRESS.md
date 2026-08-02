@@ -338,3 +338,47 @@ python -m unittest discover -s tests -v   # 95 OK
 python -m src.validate.compare "data/validate/book_poll_5m_20260802T064911Z.parquet" "data/validate/xrp-updown-5m-1785653100.parquet" "xrp-updown-5m-1785653100"
 git pull --rebase && git add src/ tests/ ASSUMPTIONS.md PROGRESS.md PROBE_RESULTS.md && git commit -m "stage1/validate: discovery, book poller, pmdata reference, comparator" && git push origin main
 ```
+
+## 2026-08-02 (вечер) — collector: смоук 15 мин, гейт покрытия <5% выполнен
+
+### Сделано
+- `src/collect/` работает end-to-end: `python -m unittest discover -s tests -q`
+  → 117 OK.
+- 15-мин смоук в `data/pm_smoke3.duckdb` (crypto up/down, 140 markets_tracked):
+  - book_snapshots 25650, tick_changes 25188, recon_checks 640
+    (verdict: warmup 520, match 120, **mismatch 0**), reconnects 7,
+    gap_intervals по причине disconnect 532;
+  - покрытие: рынков с долей пропусков < 5% — **112 из 112** (гейт G3.
+    До фикса было 14/112 с долями 10-20%).
+- Исправления по ходу:
+  - `coverage.py`: `MIN(end_ms, ?)` парсился как агрегат → скалярные
+    LEAST/GREATEST (binder-ошибки «aggregate function calls cannot be nested»
+    и «column lo_ms not found»);
+  - `_rest_backfill` переведён на async (httpx.AsyncClient, пул
+    BACKFILL_CONCURRENCY=16): 84 токена 7-11 c → ~2.7 c. Это и вытащило
+    покрытие под 5% (server_resync 12-34 c → ~2-3 c);
+  - в бэкфилле при 404-рынке `live.initialized=False`, чтобы первый WS-снимок
+    после обрыва был warmup, а не ложный mismatch (в прогоне было 12-20
+    mismatch, в финальном — 0);
+  - `ping_timeout` 20 → 90 c (не рубим соединение сами по задержке pong) +
+    `await asyncio.sleep(0)` после каждого сообщения (пропуск управляющих
+    кадров). На каденс обрывов не повлияло.
+- Прочие смоуки: `data/pm.duckdb` (15 мин, старый последовательный бэкфилл,
+  покрытие 14/112 — устарел), `data/pm_smoke2.duckdb`, `data/pm_iso.duckdb`
+  (8 мин, recheck/export отключены).
+
+### НЕ сделано и почему
+- Двухчасовой прогон в основную БД + сверка `compare.py` против pmdata —
+  не запущены (лимит сессии; pmdata-квота; вопрос про суточный прогон).
+- Корневая причина обрывов WS не установлена (сервер сам закрывает 1011
+  «keepalive ping timeout» ~каждые 90 c; зонд с 3 токенами живёт 150+ c;
+  recheck/export и ping_timeout не влияют). Открытый вопрос в
+  DECISIONS_NEEDED.md.
+- Правки НЕ закоммичены и не запушены (AGENTS.md: без явной команды).
+
+### Команды
+```
+python -m src.collect.ws_collector --minutes 15 --vertical crypto --db data/pm_smoke3.duckdb
+python -m src.collect.coverage --db data/pm_smoke3.duckdb
+python -m unittest discover -s tests -q   # 117 OK
+```
