@@ -1,0 +1,632 @@
+{
+  "generated": "2026-08-02T14:55:40Z",
+  "wallets": {
+    "skyman44": {
+      "name": "skyman44",
+      "address": "0x30c7ac0158499ddc6761047f7f69bcf7d036ac3b",
+      "n_positions_default": 100,
+      "response_type": "list",
+      "raw_first_position": {
+        "proxyWallet": "0x30c7ac0158499ddc6761047f7f69bcf7d036ac3b",
+        "asset": "76491334637196280448417559711604050243694213591928776112992216894412578072674",
+        "conditionId": "0x02869ab3fd815cef605cf0144b6b0bda7d851a5ade0a8dad60c899ce3c98df19",
+        "size": 79978.91,
+        "avgPrice": 0.3838,
+        "initialValue": 30701.5841,
+        "currentValue": 0,
+        "cashPnl": -30701.5841,
+        "percentPnl": -99.9999,
+        "totalBought": 79978.91,
+        "realizedPnl": 0,
+        "percentRealizedPnl": -100,
+        "curPrice": 0,
+        "redeemable": true,
+        "mergeable": false,
+        "title": "Will Paper Rex win Valorant Masters London 2026?",
+        "slug": "will-paper-rex-win-valorant-masters-london-2026",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/paper-rex-val-2ee93dacb3.png",
+        "eventId": "562877",
+        "eventSlug": "valorant-masters-london-2026-winner",
+        "outcome": "Yes",
+        "outcomeIndex": 0,
+        "oppositeOutcome": "No",
+        "oppositeAsset": "98950272520838463496317850430094256812630602577721960787535667688172509087475",
+        "endDate": "2026-06-21",
+        "negativeRisk": true
+      },
+      "fields": {
+        "proxyWallet": {
+          "types": [
+            "str"
+          ],
+          "example": "0x30c7ac0158499ddc6761047f7f69bcf7d036ac3b",
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "asset": {
+          "types": [
+            "str"
+          ],
+          "example": "76491334637196280448417559711604050243694213591928776112992216894412578072674",
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "conditionId": {
+          "types": [
+            "str"
+          ],
+          "example": "0x02869ab3fd815cef605cf0144b6b0bda7d851a5ade0a8dad60c899ce3c98df19",
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "size": {
+          "types": [
+            "float",
+            "int"
+          ],
+          "example": 79978.91,
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "avgPrice": {
+          "types": [
+            "float"
+          ],
+          "example": 0.3838,
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "initialValue": {
+          "types": [
+            "float",
+            "int"
+          ],
+          "example": 30701.5841,
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "currentValue": {
+          "types": [
+            "float",
+            "int"
+          ],
+          "example": 0,
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "cashPnl": {
+          "types": [
+            "float",
+            "int"
+          ],
+          "example": -30701.5841,
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "percentPnl": {
+          "types": [
+            "float",
+            "int"
+          ],
+          "example": -99.9999,
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "totalBought": {
+          "types": [
+            "float",
+            "int"
+          ],
+          "example": 79978.91,
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "realizedPnl": {
+          "types": [
+            "int"
+          ],
+          "example": 0,
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "percentRealizedPnl": {
+          "types": [
+            "float",
+            "int"
+          ],
+          "example": -100,
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "curPrice": {
+          "types": [
+            "float",
+            "int"
+          ],
+          "example": 0,
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "redeemable": {
+          "types": [
+            "bool"
+          ],
+          "example": true,
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "mergeable": {
+          "types": [
+            "bool"
+          ],
+          "example": false,
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "title": {
+          "types": [
+            "str"
+          ],
+          "example": "Will Paper Rex win Valorant Masters London 2026?",
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "slug": {
+          "types": [
+            "str"
+          ],
+          "example": "will-paper-rex-win-valorant-masters-london-2026",
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "icon": {
+          "types": [
+            "str"
+          ],
+          "example": "https://polymarket-upload.s3.us-east-2.amazonaws.com/paper-rex-val-2ee93dacb3.png",
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "eventId": {
+          "types": [
+            "str"
+          ],
+          "example": "562877",
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "eventSlug": {
+          "types": [
+            "str"
+          ],
+          "example": "valorant-masters-london-2026-winner",
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "outcome": {
+          "types": [
+            "str"
+          ],
+          "example": "Yes",
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "outcomeIndex": {
+          "types": [
+            "int"
+          ],
+          "example": 0,
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "oppositeOutcome": {
+          "types": [
+            "str"
+          ],
+          "example": "No",
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "oppositeAsset": {
+          "types": [
+            "str"
+          ],
+          "example": "98950272520838463496317850430094256812630602577721960787535667688172509087475",
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "endDate": {
+          "types": [
+            "str"
+          ],
+          "example": "2026-06-21",
+          "nonnull": 100,
+          "nulls": 0
+        },
+        "negativeRisk": {
+          "types": [
+            "bool"
+          ],
+          "example": true,
+          "nonnull": 100,
+          "nulls": 0
+        }
+      },
+      "pnl_value_fields_by_name": [
+        "size",
+        "avgPrice",
+        "initialValue",
+        "currentValue",
+        "cashPnl",
+        "percentPnl",
+        "realizedPnl",
+        "percentRealizedPnl",
+        "curPrice",
+        "redeemable"
+      ],
+      "n_distinct_markets": 100,
+      "per_market_profit_possible": true,
+      "market_field": "conditionId",
+      "duplicate_market_keys": 0,
+      "n_zero_size": 0,
+      "closed_indicator_fields": [
+        "redeemable",
+        "outcome",
+        "outcomeIndex",
+        "oppositeOutcome"
+      ],
+      "n_trades": 1011,
+      "n_distinct_markets_in_trades": 671,
+      "markets_only_in_trades": 590,
+      "markets_only_in_positions": 19,
+      "markets_in_both": 81,
+      "markets_missing_from_positions_examples": [
+        "0x00227b54224bc1256ca9d8723318e260016568134e6fd3ec823d41b1281def59",
+        "0x01a0ddbfe0b3e0399b53486d68445adc015c0ce193d7b6af96d6fb770bcd63ba",
+        "0x0207ae0a82d447754d59f1e7b52b4cd63b7848679b8fc6e6b0ea031867bccee7",
+        "0x022615342db474998eabd214c00fd4a51fc21aab87379d23dabec27175f35a26",
+        "0x022645876da0eef8e09462fdcdf1de651286e7ea9555b055aba826cc070e5da7"
+      ],
+      "proof_trade_raw": {
+        "proxyWallet": "0x30c7ac0158499ddc6761047f7f69bcf7d036ac3b",
+        "side": "BUY",
+        "asset": "71676436947916681732710137073766843110311235581204572585967587759687804371713",
+        "conditionId": "0x00227b54224bc1256ca9d8723318e260016568134e6fd3ec823d41b1281def59",
+        "size": 932,
+        "price": 0.63,
+        "timestamp": 1778525689,
+        "title": "Counter-Strike: TheMongolz vs Team Falcons (BO3) - PGL Astana Group Stage",
+        "slug": "cs2-mglz-fal2-2026-05-12",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/counter-strike-image-16c415c538.png",
+        "eventSlug": "cs2-mglz-fal2-2026-05-12",
+        "outcome": "Team Falcons",
+        "outcomeIndex": 1,
+        "name": "skyman44",
+        "pseudonym": "Treasured-Parchment",
+        "bio": "",
+        "profileImage": "",
+        "profileImageOptimized": "",
+        "transactionHash": "0x03ef992a05c60cfcba9176b26cce9d250d10e3a7ba091b656f6b8cded867cc32"
+      },
+      "closed_positions_visible": false,
+      "pagination": {
+        "default": 100,
+        "limit500": 240,
+        "limit1000": 240,
+        "limit1000_offset_n": 140,
+        "offset5000": 0
+      }
+    },
+    "flatbarrel": {
+      "name": "flatbarrel",
+      "address": "0x03dc85f81b6690f0eb6332dad53623ac0962132a",
+      "n_positions_default": 8,
+      "response_type": "list",
+      "raw_first_position": {
+        "proxyWallet": "0x03dc85f81b6690f0eb6332dad53623ac0962132a",
+        "asset": "61266189355924175483682757434409358520525149535370873624160051338604240827261",
+        "conditionId": "0x37ed6fdee082c3053b158173316f8527593150da3f81db75e3efcdc660a9b3ee",
+        "size": 10.5263,
+        "avgPrice": 0.1899,
+        "initialValue": 1.9999,
+        "currentValue": 1.9473,
+        "cashPnl": -0.0526,
+        "percentPnl": -2.63,
+        "totalBought": 10.5263,
+        "realizedPnl": 0,
+        "percentRealizedPnl": -2.6344,
+        "curPrice": 0.185,
+        "redeemable": false,
+        "mergeable": false,
+        "title": "Will Sandnes Ulf win on 2026-08-02?",
+        "slug": "nor2-eik-san-2026-08-02-san",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/soccer-leagues/nor2.png",
+        "eventId": "761863",
+        "eventSlug": "nor2-eik-san-2026-08-02",
+        "outcome": "Yes",
+        "outcomeIndex": 0,
+        "oppositeOutcome": "No",
+        "oppositeAsset": "47704990866473919429880595373698859113134275910567395817327987821419446440557",
+        "endDate": "2026-08-02",
+        "negativeRisk": true
+      },
+      "fields": {
+        "proxyWallet": {
+          "types": [
+            "str"
+          ],
+          "example": "0x03dc85f81b6690f0eb6332dad53623ac0962132a",
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "asset": {
+          "types": [
+            "str"
+          ],
+          "example": "61266189355924175483682757434409358520525149535370873624160051338604240827261",
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "conditionId": {
+          "types": [
+            "str"
+          ],
+          "example": "0x37ed6fdee082c3053b158173316f8527593150da3f81db75e3efcdc660a9b3ee",
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "size": {
+          "types": [
+            "float"
+          ],
+          "example": 10.5263,
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "avgPrice": {
+          "types": [
+            "float"
+          ],
+          "example": 0.1899,
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "initialValue": {
+          "types": [
+            "float"
+          ],
+          "example": 1.9999,
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "currentValue": {
+          "types": [
+            "float",
+            "int"
+          ],
+          "example": 1.9473,
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "cashPnl": {
+          "types": [
+            "float"
+          ],
+          "example": -0.0526,
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "percentPnl": {
+          "types": [
+            "float"
+          ],
+          "example": -2.63,
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "totalBought": {
+          "types": [
+            "float"
+          ],
+          "example": 10.5263,
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "realizedPnl": {
+          "types": [
+            "int"
+          ],
+          "example": 0,
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "percentRealizedPnl": {
+          "types": [
+            "float",
+            "int"
+          ],
+          "example": -2.6344,
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "curPrice": {
+          "types": [
+            "float",
+            "int"
+          ],
+          "example": 0.185,
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "redeemable": {
+          "types": [
+            "bool"
+          ],
+          "example": false,
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "mergeable": {
+          "types": [
+            "bool"
+          ],
+          "example": false,
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "title": {
+          "types": [
+            "str"
+          ],
+          "example": "Will Sandnes Ulf win on 2026-08-02?",
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "slug": {
+          "types": [
+            "str"
+          ],
+          "example": "nor2-eik-san-2026-08-02-san",
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "icon": {
+          "types": [
+            "str"
+          ],
+          "example": "https://polymarket-upload.s3.us-east-2.amazonaws.com/soccer-leagues/nor2.png",
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "eventId": {
+          "types": [
+            "str"
+          ],
+          "example": "761863",
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "eventSlug": {
+          "types": [
+            "str"
+          ],
+          "example": "nor2-eik-san-2026-08-02",
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "outcome": {
+          "types": [
+            "str"
+          ],
+          "example": "Yes",
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "outcomeIndex": {
+          "types": [
+            "int"
+          ],
+          "example": 0,
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "oppositeOutcome": {
+          "types": [
+            "str"
+          ],
+          "example": "No",
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "oppositeAsset": {
+          "types": [
+            "str"
+          ],
+          "example": "47704990866473919429880595373698859113134275910567395817327987821419446440557",
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "endDate": {
+          "types": [
+            "str"
+          ],
+          "example": "2026-08-02",
+          "nonnull": 8,
+          "nulls": 0
+        },
+        "negativeRisk": {
+          "types": [
+            "bool"
+          ],
+          "example": true,
+          "nonnull": 8,
+          "nulls": 0
+        }
+      },
+      "pnl_value_fields_by_name": [
+        "size",
+        "avgPrice",
+        "initialValue",
+        "currentValue",
+        "cashPnl",
+        "percentPnl",
+        "realizedPnl",
+        "percentRealizedPnl",
+        "curPrice",
+        "redeemable"
+      ],
+      "n_distinct_markets": 8,
+      "per_market_profit_possible": true,
+      "market_field": "conditionId",
+      "duplicate_market_keys": 0,
+      "n_zero_size": 0,
+      "closed_indicator_fields": [
+        "redeemable",
+        "outcome",
+        "outcomeIndex",
+        "oppositeOutcome"
+      ],
+      "n_trades": 465,
+      "n_distinct_markets_in_trades": 307,
+      "markets_only_in_trades": 299,
+      "markets_only_in_positions": 0,
+      "markets_in_both": 8,
+      "markets_missing_from_positions_examples": [
+        "0x007977d5b6fed9d56905bb71223d9fc6e057ee4476eb47bb544b319269ce8b48",
+        "0x0325cf44bfe3fd1015ae86a2dd3e5b014131efa0a5174ce1d82c3c2ef9cb01bd",
+        "0x0338d6f82442e6528100283b69e48cd72fe306541b3db2c16b4a82be086a1d73",
+        "0x0346eccd1e827b09607fe85104081a4a130000000000000000000000000000",
+        "0x03fade8936880b5c755b28db4bbf83b4440000000000000000000000000000"
+      ],
+      "proof_trade_raw": {
+        "proxyWallet": "0x03dc85f81b6690f0eb6332dad53623ac0962132a",
+        "side": "BUY",
+        "asset": "109081935963654607520431511652066651893073753363094283925911183046964880736439",
+        "conditionId": "0x007977d5b6fed9d56905bb71223d9fc6e057ee4476eb47bb544b319269ce8b48",
+        "size": 2.380951,
+        "price": 0.4199998236,
+        "timestamp": 1785352686,
+        "title": "Bitcoin Up or Down - July 29, 3:15PM-3:20PM ET",
+        "slug": "btc-updown-5m-1785352500",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/BTC+fullsize.png",
+        "eventSlug": "btc-updown-5m-1785352500",
+        "outcome": "Up",
+        "outcomeIndex": 0,
+        "name": "magsimich",
+        "pseudonym": "Baggy-Rehospitalization",
+        "bio": "Creator of Neuro. Graphics. I draw.",
+        "profileImage": "https://polymarket-upload.s3.us-east-2.amazonaws.com/profile-image-4281188-89b23a98-9a1f-41f7-9b00-63af6c6c312a.png",
+        "profileImageOptimized": "",
+        "transactionHash": "0x8cb612a181629ac39ad976b5257586193bfc5e3511db51dddb6a9d3252910d68"
+      },
+      "closed_positions_visible": false,
+      "pagination": {
+        "default": 8,
+        "limit500": 8,
+        "limit1000": 8,
+        "limit1000_offset_n": 0,
+        "offset5000": 0
+      }
+    }
+  }
+}

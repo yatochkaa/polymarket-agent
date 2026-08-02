@@ -1,0 +1,197 @@
+GLM PROBA 2 -- data-api /positions
+DATA: https://data-api.polymarket.com
+Log: C:\Users\awf\Desktop\test\probes\glm\probe2_raw_api.log
+
+[0] Poisk adresa 'flatbarrel' cherez /trades ...
+    NAYDEN 'flatbarrel' cherez /trades?user=flatbarrel: 5 zapisey
+    address: 0x03dc85f81b6690f0eb6332dad53623ac0962132a
+flatbarrel: 0x03dc85f81b6690f0eb6332dad53623ac0962132a (found via /trades?user=flatbarrel)
+
+========================================================================
+KOSHELEK: skyman44  0x30c7ac0158499ddc6761047f7f69bcf7d036ac3b
+========================================================================
+  tip otveta: list | poziciy: 100
+  --- SYRAYA PERVAYA POZICIYA (polnostyu) ---
+  {
+  "proxyWallet": "0x30c7ac0158499ddc6761047f7f69bcf7d036ac3b",
+  "asset": "76491334637196280448417559711604050243694213591928776112992216894412578072674",
+  "conditionId": "0x02869ab3fd815cef605cf0144b6b0bda7d851a5ade0a8dad60c899ce3c98df19",
+  "size": 79978.91,
+  "avgPrice": 0.3838,
+  "initialValue": 30701.5841,
+  "currentValue": 0,
+  "cashPnl": -30701.5841,
+  "percentPnl": -99.9999,
+  "totalBought": 79978.91,
+  "realizedPnl": 0,
+  "percentRealizedPnl": -100,
+  "curPrice": 0,
+  "redeemable": true,
+  "mergeable": false,
+  "title": "Will Paper Rex win Valorant Masters London 2026?",
+  "slug": "will-paper-rex-win-valorant-masters-london-2026",
+  "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/paper-rex-val-2ee93dacb3.png",
+  "eventId": "562877",
+  "eventSlug": "valorant-masters-london-2026-winner",
+  "outcome": "Yes",
+  "outcomeIndex": 0,
+  "oppositeOutcome": "No",
+  "oppositeAsset": "98950272520838463496317850430094256812630602577721960787535667688172509087475",
+  "endDate": "2026-06-21",
+  "negativeRisk": true
+}
+
+  --- POLA (26) ---
+    asset                      str                prim="76491334637196280448417559711604050243694213591928776112992... | nonnull=100 null=0
+    avgPrice                   float              prim=0.3838 | nonnull=100 null=0
+    cashPnl                    float/int          prim=-30701.5841 | nonnull=100 null=0
+    conditionId                str                prim="0x02869ab3fd815cef605cf0144b6b0bda7d851a5ade0a8dad60c899ce3... | nonnull=100 null=0
+    curPrice                   float/int          prim=0 | nonnull=100 null=0
+    currentValue               float/int          prim=0 | nonnull=100 null=0
+    endDate                    str                prim="2026-06-21" | nonnull=100 null=0
+    eventId                    str                prim="562877" | nonnull=100 null=0
+    eventSlug                  str                prim="valorant-masters-london-2026-winner" | nonnull=100 null=0
+    icon                       str                prim="https://polymarket-upload.s3.us-east-2.amazonaws.com/paper-... | nonnull=100 null=0
+    initialValue               float/int          prim=30701.5841 | nonnull=100 null=0
+    mergeable                  bool               prim=false | nonnull=100 null=0
+    negativeRisk               bool               prim=true | nonnull=100 null=0
+    oppositeAsset              str                prim="98950272520838463496317850430094256812630602577721960787535... | nonnull=100 null=0
+    oppositeOutcome            str                prim="No" | nonnull=100 null=0
+    outcome                    str                prim="Yes" | nonnull=100 null=0
+    outcomeIndex               int                prim=0 | nonnull=100 null=0
+    percentPnl                 float/int          prim=-99.9999 | nonnull=100 null=0
+    percentRealizedPnl         float/int          prim=-100 | nonnull=100 null=0
+    proxyWallet                str                prim="0x30c7ac0158499ddc6761047f7f69bcf7d036ac3b" | nonnull=100 null=0
+    realizedPnl                int                prim=0 | nonnull=100 null=0
+    redeemable                 bool               prim=true | nonnull=100 null=0
+    size                       float/int          prim=79978.91 | nonnull=100 null=0
+    slug                       str                prim="will-paper-rex-win-valorant-masters-london-2026" | nonnull=100 null=0
+    title                      str                prim="Will Paper Rex win Valorant Masters London 2026?" | nonnull=100 null=0
+    totalBought                float/int          prim=79978.91 | nonnull=100 null=0
+
+  --- POLA PRIBYLI/STOIMOSTI (po imeni): ['size', 'avgPrice', 'initialValue', 'currentValue', 'cashPnl', 'percentPnl', 'realizedPnl', 'percentRealizedPnl', 'curPrice', 'redeemable']
+
+  --- RYNIKI ---
+  poziciy: 100 | distinct rynkov: 100
+  pole rynka: conditionId | dubley conditionId: 0 (0 = 1 zapis = 1 rynok)
+  pozicij s size==0: 0 | polya-priznaki zakrytiya: ['redeemable', 'outcome', 'outcomeIndex', 'oppositeOutcome']
+
+  --- DOKAZATELSTVO: ZAKRYTYE POZICII VIDNY? ---
+  [dokaz] /trades?user=: sdelok=1011
+  [dokaz] /trades distinct rynkov: 671
+  [dokaz] rynkov v /trades NO NET v /positions: 590
+  [dokaz] rynkov v /positions NO NET v /trades: 19
+  [dokaz] rynkov v OBOIH: 81
+  => DOKAZANO: /positions TERYAET pozicii. Primery rynkov v /trades no ne v /positions:
+     0x00227b54224bc125...  slug=cs2-mglz-fal2-2026-05-12
+     0x01a0ddbfe0b3e039...  slug=val-lev1-fur-2026-07-16
+     0x0207ae0a82d44775...  slug=val-ef-th1-2026-05-07
+  --- SYRAYA STROKA /trades dlya dokazatelstva (rynok est v trades, net v positions) ---
+  {"proxyWallet": "0x30c7ac0158499ddc6761047f7f69bcf7d036ac3b", "side": "BUY", "asset": "71676436947916681732710137073766843110311235581204572585967587759687804371713", "conditionId": "0x00227b54224bc1256ca9d8723318e260016568134e6fd3ec823d41b1281def59", "size": 932, "price": 0.63, "timestamp": 1778525689, "title": "Counter-Strike: TheMongolz vs Team Falcons (BO3) - PGL Astana Group Stage", "slug": "cs2-mglz-fal2-2026-05-12", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/counter-strike-image-16c415c538.png", "eventSlug": "cs2-mglz-fal2-2026-05-12", "outcome": "Team Falcons", "outc
+
+  >>> VERDICT: ZAKRYTYE POZICII NE VIDNY v /positions (est rynki v istorii sdelok, otsutstvuyut v positions).
+
+  --- PAGINACIYA ---
+  default(limit ne ukazan):100 | limit=500:240
+  limit=1000: 240
+  limit=1000&offset=100:140
+  limit=500&offset=5000 (proverka potolka): 0
+
+========================================================================
+KOSHELEK: flatbarrel  0x03dc85f81b6690f0eb6332dad53623ac0962132a
+========================================================================
+  tip otveta: list | poziciy: 8
+  --- SYRAYA PERVAYA POZICIYA (polnostyu) ---
+  {
+  "proxyWallet": "0x03dc85f81b6690f0eb6332dad53623ac0962132a",
+  "asset": "61266189355924175483682757434409358520525149535370873624160051338604240827261",
+  "conditionId": "0x37ed6fdee082c3053b158173316f8527593150da3f81db75e3efcdc660a9b3ee",
+  "size": 10.5263,
+  "avgPrice": 0.1899,
+  "initialValue": 1.9999,
+  "currentValue": 1.9473,
+  "cashPnl": -0.0526,
+  "percentPnl": -2.63,
+  "totalBought": 10.5263,
+  "realizedPnl": 0,
+  "percentRealizedPnl": -2.6344,
+  "curPrice": 0.185,
+  "redeemable": false,
+  "mergeable": false,
+  "title": "Will Sandnes Ulf win on 2026-08-02?",
+  "slug": "nor2-eik-san-2026-08-02-san",
+  "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/soccer-leagues/nor2.png",
+  "eventId": "761863",
+  "eventSlug": "nor2-eik-san-2026-08-02",
+  "outcome": "Yes",
+  "outcomeIndex": 0,
+  "oppositeOutcome": "No",
+  "oppositeAsset": "47704990866473919429880595373698859113134275910567395817327987821419446440557",
+  "endDate": "2026-08-02",
+  "negativeRisk": true
+}
+
+  --- POLA (26) ---
+    asset                      str                prim="61266189355924175483682757434409358520525149535370873624160... | nonnull=8 null=0
+    avgPrice                   float              prim=0.1899 | nonnull=8 null=0
+    cashPnl                    float              prim=-0.0526 | nonnull=8 null=0
+    conditionId                str                prim="0x37ed6fdee082c3053b158173316f8527593150da3f81db75e3efcdc66... | nonnull=8 null=0
+    curPrice                   float/int          prim=0.185 | nonnull=8 null=0
+    currentValue               float/int          prim=1.9473 | nonnull=8 null=0
+    endDate                    str                prim="2026-08-02" | nonnull=8 null=0
+    eventId                    str                prim="761863" | nonnull=8 null=0
+    eventSlug                  str                prim="nor2-eik-san-2026-08-02" | nonnull=8 null=0
+    icon                       str                prim="https://polymarket-upload.s3.us-east-2.amazonaws.com/soccer... | nonnull=8 null=0
+    initialValue               float              prim=1.9999 | nonnull=8 null=0
+    mergeable                  bool               prim=false | nonnull=8 null=0
+    negativeRisk               bool               prim=true | nonnull=8 null=0
+    oppositeAsset              str                prim="47704990866473919429880595373698859113134275910567395817327... | nonnull=8 null=0
+    oppositeOutcome            str                prim="No" | nonnull=8 null=0
+    outcome                    str                prim="Yes" | nonnull=8 null=0
+    outcomeIndex               int                prim=0 | nonnull=8 null=0
+    percentPnl                 float              prim=-2.63 | nonnull=8 null=0
+    percentRealizedPnl         float/int          prim=-2.6344 | nonnull=8 null=0
+    proxyWallet                str                prim="0x03dc85f81b6690f0eb6332dad53623ac0962132a" | nonnull=8 null=0
+    realizedPnl                int                prim=0 | nonnull=8 null=0
+    redeemable                 bool               prim=false | nonnull=8 null=0
+    size                       float              prim=10.5263 | nonnull=8 null=0
+    slug                       str                prim="nor2-eik-san-2026-08-02-san" | nonnull=8 null=0
+    title                      str                prim="Will Sandnes Ulf win on 2026-08-02?" | nonnull=8 null=0
+    totalBought                float              prim=10.5263 | nonnull=8 null=0
+
+  --- POLA PRIBYLI/STOIMOSTI (po imeni): ['size', 'avgPrice', 'initialValue', 'currentValue', 'cashPnl', 'percentPnl', 'realizedPnl', 'percentRealizedPnl', 'curPrice', 'redeemable']
+
+  --- RYNIKI ---
+  poziciy: 8 | distinct rynkov: 8
+  pole rynka: conditionId | dubley conditionId: 0 (0 = 1 zapis = 1 rynok)
+  pozicij s size==0: 0 | polya-priznaki zakrytiya: ['redeemable', 'outcome', 'outcomeIndex', 'oppositeOutcome']
+
+  --- DOKAZATELSTVO: ZAKRYTYE POZICII VIDNY? ---
+  [dokaz] /trades?user=: sdelok=465
+  [dokaz] /trades distinct rynkov: 307
+  [dokaz] rynkov v /trades NO NET v /positions: 299
+  [dokaz] rynkov v /positions NO NET v /trades: 0
+  [dokaz] rynkov v OBOIH: 8
+  => DOKAZANO: /positions TERYAET pozicii. Primery rynkov v /trades no ne v /positions:
+     0x007977d5b6fed9d5...  slug=btc-updown-5m-1785352500
+     0x0325cf44bfe3fd10...  slug=acn-rsa-cmr-2026-01-04-cmr
+     0x0338d6f82442e652...  slug=uel-qar-ves-2026-07-09-qar
+  --- SYRAYA STROKA /trades dlya dokazatelstva (rynok est v trades, net v positions) ---
+  {"proxyWallet": "0x03dc85f81b6690f0eb6332dad53623ac0962132a", "side": "BUY", "asset": "109081935963654607520431511652066651893073753363094283925911183046964880736439", "conditionId": "0x007977d5b6fed9d56905bb71223d9fc6e057ee4476eb47bb544b319269ce8b48", "size": 2.380951, "price": 0.4199998236, "timestamp": 1785352686, "title": "Bitcoin Up or Down - July 29, 3:15PM-3:20PM ET", "slug": "btc-updown-5m-1785352500", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/BTC+fullsize.png", "eventSlug": "btc-updown-5m-1785352500", "outcome": "Up", "outcomeIndex": 0, "name": "magsimich", "pseudo
+
+  >>> VERDICT: ZAKRYTYE POZICII NE VIDNY v /positions (est rynki v istorii sdelok, otsutstvuyut v positions).
+
+  --- PAGINACIYA ---
+  default(limit ne ukazan):8 | limit=500:8
+  limit=1000: 8
+  limit=1000&offset=8:0
+  limit=500&offset=5000 (proverka potolka): 0
+
+========================================================================
+OGARANICHENIE PO CHASTOTE
+========================================================================
+  Po zadaniyu: 150 zaprosov na 10 sekund.
+  Skript throttlit do 120 za 10.0 s (zapas).
+
+Itog -> C:\Users\awf\Desktop\test\probes\glm\probe2_summary.json
+Syroy log -> C:\Users\awf\Desktop\test\probes\glm\probe2_raw_api.log
