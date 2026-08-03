@@ -523,6 +523,7 @@ class Collector:
                 "events": 0,
                 "recons": 0,
                 "recons_mismatch": 0,
+                "reconnects": 0,
                 "max_silence_s": 0.0,
                 "n_silence_episodes": 0,
                 "n_pings_fired": 0,
@@ -604,7 +605,12 @@ class Collector:
 
         Правило (решение владельца 2026-08-03, см. DECISIONS_NEEDED.md):
         - book          -> (asset_id, hash)          # hash сообщения
-        - price_change  -> (asset_id, hash)          # hash элемента price_changes
+        - price_change  -> (asset_id, hash, price, size)
+          hash элемента price_changes НЕ уникален: сервер переиспользует его
+          для разных изменений одного актива в пределах миллисекунды
+          (logs/ws_raw.jsonl, recv_ms=1785651207744: price=0.3/size=8700 против
+          price=0.4/size=6781.44 с одним hash), поэтому price и size обязаны
+          входить в ключ — иначе легитимная дельта отбрасывается (ASSUMPTIONS.md).
         - last_trade_price -> (asset_id, transaction_hash, price, size)
           одна транзакция может нести несколько исполнений по активу, и ключ
           только по (asset_id, transaction_hash) склеил бы разные сделки.
@@ -614,7 +620,15 @@ class Collector:
         if isinstance(event, BookEvent):
             return self._key_by_hash(event.token_id, event.hash, "book")
         if isinstance(event, DeltaEvent):
-            return self._key_by_hash(event.token_id, event.hash, "price_change")
+            if not event.hash:
+                raise ValueError(
+                    f"тип 'price_change' без hash (token_id="
+                    f"{event.token_id!r}): дедуп невозможен"
+                )
+            return (
+                f"{event.token_id}|{event.hash}|"
+                f"{event.price}|{event.size}"
+            )
         if isinstance(event, TradeEvent):
             if not event.transaction_hash:
                 raise ValueError(
@@ -858,6 +872,8 @@ class Collector:
     ) -> None:
         """Обрыв соединения: gap_intervals(reason=disconnect) по всем токенам."""
         self.stats["reconnects"] += 1
+        st = self._conn_stats(conn_id)
+        st["reconnects"] = int(st["reconnects"]) + 1
         for token_id in tokens:
             self.writer.submit_row(
                 "gap_intervals",
@@ -1389,6 +1405,7 @@ async def run(
                         "events": int(st["events"]),
                         "recons": int(st["recons"]),
                         "recons_mismatch": int(st["recons_mismatch"]),
+                        "reconnects": int(st["reconnects"]),
                         "max_silence_s": round(float(st["max_silence_s"]), 3),
                         "n_silence_episodes": int(st["n_silence_episodes"]),
                         "n_pings_fired": int(st["n_pings_fired"]),

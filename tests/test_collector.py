@@ -385,8 +385,9 @@ class TestCollectorEndToEnd(unittest.TestCase):
 
 class TestDedupKeyByType(unittest.TestCase):
     """Дедуп по ТИПУ сообщения (решение владельца 2026-08-03, DECISIONS_NEEDED.md):
-    price_change/book -> (asset_id, hash); last_trade_price ->
-    (asset_id, transaction_hash, price, size). md5 тела убран полностью."""
+    book -> (asset_id, hash); price_change -> (asset_id, hash, price, size);
+    last_trade_price -> (asset_id, transaction_hash, price, size).
+    md5 тела убран полностью."""
 
     @staticmethod
     def _delta(h: str, *, price: float = 0.49, size: float = 50.0) -> DeltaEvent:
@@ -427,6 +428,38 @@ class TestDedupKeyByType(unittest.TestCase):
             self.assertEqual(col.stats["events_skipped_dedup"], 0)
             n = con.execute("SELECT COUNT(*) FROM book_snapshots").fetchone()[0]
             self.assertEqual(n, 2)
+
+    def test_delta_same_hash_diff_price_size_two_records(self) -> None:
+        """price_change с ОДИНАКОВЫМ hash, но разными price/size -> ДВЕ записи.
+
+        Реальная пара из logs/ws_raw.jsonl (recv_ms=1785651207744, два сообщения
+        одной миллисекунды): сервер переиспользует hash для разных изменений
+        одного asset_id. Ключ (asset_id, hash) без price/size склеил бы их и
+        отбросил легитимную дельту (ASSUMPTIONS.md).
+        """
+        h = "5d37d11da6a157dc177559158c41e882f49b2fa3"
+        with _db() as con:
+            col = Collector(con, now_ms=1000)
+            col.handle_event(self._delta(h, price=0.3, size=8700.0), 1500)
+            col.handle_event(self._delta(h, price=0.4, size=6781.44), 1600)
+            self.assertEqual(col.stats["events_skipped_dedup"], 0)
+            n = con.execute("SELECT COUNT(*) FROM book_snapshots").fetchone()[0]
+            self.assertEqual(n, 2)
+            n_ticks = con.execute("SELECT COUNT(*) FROM tick_changes").fetchone()[0]
+            self.assertEqual(n_ticks, 2)
+
+    def test_delta_fully_identical_one_record(self) -> None:
+        """Два price_change дословно одинаковые (hash, price, size) -> одна запись."""
+        h = "5d37d11da6a157dc177559158c41e882f49b2fa3"
+        with _db() as con:
+            col = Collector(con, now_ms=1000)
+            col.handle_event(self._delta(h, price=0.3, size=8700.0), 1500)
+            col.handle_event(self._delta(h, price=0.3, size=8700.0), 1600)
+            self.assertEqual(col.stats["events_skipped_dedup"], 1)
+            n = con.execute("SELECT COUNT(*) FROM book_snapshots").fetchone()[0]
+            self.assertEqual(n, 1)
+            n_ticks = con.execute("SELECT COUNT(*) FROM tick_changes").fetchone()[0]
+            self.assertEqual(n_ticks, 1)
 
     def test_trade_same_tx_different_price_two_records(self) -> None:
         """Две last_trade_price с одним transaction_hash, но разной ценой -> ДВЕ

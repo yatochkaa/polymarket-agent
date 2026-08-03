@@ -109,6 +109,7 @@ CONN_STATS_COLUMNS = {
     "events": "BIGINT NOT NULL",
     "recons": "BIGINT NOT NULL",
     "recons_mismatch": "BIGINT NOT NULL",
+    "reconnects": "BIGINT NOT NULL",
     "max_silence_s": "DOUBLE NOT NULL",
     "n_silence_episodes": "INTEGER NOT NULL",
     "n_pings_fired": "INTEGER NOT NULL",
