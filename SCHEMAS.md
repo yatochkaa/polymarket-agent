@@ -207,6 +207,7 @@ Per-connection статистика одной сессии (приёмка му
 | events | BIGINT NOT NULL | calc | разобранных событий (book/delta/trade) |
 | recons | BIGINT NOT NULL | calc | сверок recon_checks |
 | recons_mismatch | BIGINT NOT NULL | calc | из них с verdict=mismatch |
+| reconnects | BIGINT NOT NULL | calc | обрывов соединения (record_disconnect) |
 | max_silence_s | DOUBLE NOT NULL | calc | максимум тишины (без единого сообщения), с |
 | n_silence_episodes | INTEGER NOT NULL | calc | эпизодов молчания дольше SILENCE_THRESHOLD_S |
 | n_pings_fired | INTEGER NOT NULL | calc | раз простой между приёмами >= PING_INTERVAL_S |
