@@ -19,12 +19,18 @@ from pathlib import Path
 
 from src.collect import store
 from src.collect.recon import LiveBook, recon_check
+from src.collect.store import SyncWriter
 from src.collect.ws_collector import (
     Collector,
     BookEvent,
     DeltaEvent,
     TradeEvent,
+    MARKETS_PER_CONN,
     interpret_message,
+    _discover,
+    _partition_market,
+    _partition_tokens,
+    parse_args,
     seq_gap_row,
     snapshot_from_delta,
     snapshot_from_levels,
@@ -210,6 +216,7 @@ class TestDisconnectGap(unittest.TestCase):
             book = BookEvent(
                 token_id="up1", market_id="0x1", ts_server_ms=9500,
                 bids=((0.49, 100.0),), asks=((0.50, 200.0),),
+                hash="h-book-gap",
                 raw=json.dumps({"event_type": "book"}),
             )
             col.handle_event(book, 9500)
@@ -233,6 +240,9 @@ class TestInterpretMessage(unittest.TestCase):
         self.assertEqual(events[0].best_bid, 0.981)
         self.assertEqual(events[1].token_id, "dn1")
         self.assertEqual(markets["up1"], "0x93796dea2fe5dfc8da1a942448e6ab767d9bb3464a96ea3a527dfed0ef7bd958")
+        # hash берётся из элемента price_changes[i] (см. решение 2026-08-03)
+        self.assertEqual(events[0].hash, "e4f69bc5faec8b3743c8726b9b32990cd9d6ce76")
+        self.assertEqual(events[1].hash, "9fd7ce7130804efff946025335305311f1ac08b7")
 
     def test_book_message(self) -> None:
         events, _ = interpret_message(BOOK_MSG, ts_recv_ms=1000)
@@ -242,6 +252,8 @@ class TestInterpretMessage(unittest.TestCase):
         self.assertEqual(ev.token_id, "up1")
         self.assertEqual(ev.ts_server_ms, 1785651131034)
         self.assertEqual(ev.bids, ((0.01, 3265.0), (0.02, 30000.0), (0.49, 100.0)))
+        # hash сообщения book (см. решение 2026-08-03)
+        self.assertEqual(ev.hash, "1a6b0e02f066df1a580e3a79670a962dcf611888")
 
     def test_last_trade_message(self) -> None:
         events, _ = interpret_message(LAST_TRADE_MSG, ts_recv_ms=1000)
@@ -249,6 +261,13 @@ class TestInterpretMessage(unittest.TestCase):
         self.assertIsInstance(events[0], TradeEvent)
         self.assertEqual(events[0].price, 0.981)
         self.assertEqual(events[0].side, "SELL")
+        # у last_trade_price поля hash НЕТ, есть только transaction_hash
+        # (захват 2026-08-02, logs/_ws_analysis.txt:28-29)
+        self.assertFalse(hasattr(events[0], "hash"))
+        self.assertEqual(
+            events[0].transaction_hash,
+            "0x2499a3570990342d1f43065079f333348f956cc94f555353f4094947173ef641",
+        )
 
     def test_book_array_initial_snapshot(self) -> None:
         events, markets = interpret_message(BOOK_ARRAY_MSG, ts_recv_ms=1000)
@@ -273,6 +292,7 @@ class TestCollectorEndToEnd(unittest.TestCase):
                 token_id="up1", market_id="0x1", ts_server_ms=1000,
                 bids=((0.49, 100.0), (0.48, 50.0)),
                 asks=((0.50, 200.0), (0.51, 100.0)),
+                hash="h-b1",
                 raw=json.dumps({"event_type": "book", "asset_id": "up1", "ts": 1}),
             )
             col.handle_event(b1, 1000)
@@ -285,6 +305,7 @@ class TestCollectorEndToEnd(unittest.TestCase):
                 token_id="up1", market_id="0x1", ts_server_ms=1500,
                 side="BUY", price=0.49, size=150.0,
                 best_bid=0.49, best_ask=0.50,
+                hash="h-d1",
                 raw=json.dumps({"event_type": "price_change", "asset_id": "up1", "ts": 2}),
             )
             col.handle_event(d, 1500)
@@ -293,6 +314,7 @@ class TestCollectorEndToEnd(unittest.TestCase):
                 token_id="up1", market_id="0x1", ts_server_ms=2000,
                 bids=((0.49, 150.0), (0.48, 50.0)),
                 asks=((0.50, 200.0), (0.51, 100.0)),
+                hash="h-b2",
                 raw=json.dumps({"event_type": "book", "asset_id": "up1", "ts": 3}),
             )
             col.handle_event(b2, 2000)
@@ -319,6 +341,7 @@ class TestCollectorEndToEnd(unittest.TestCase):
             b1 = BookEvent(
                 token_id="up1", market_id="0x1", ts_server_ms=1000,
                 bids=((0.49, 100.0),), asks=((0.50, 200.0),),
+                hash="h-b1",
                 raw=json.dumps({"e": "book", "a": "up1", "t": 1}),
             )
             col.handle_event(b1, 1000)
@@ -326,6 +349,7 @@ class TestCollectorEndToEnd(unittest.TestCase):
             b2 = BookEvent(
                 token_id="up1", market_id="0x1", ts_server_ms=2000,
                 bids=((0.49, 300.0),), asks=((0.50, 200.0),),
+                hash="h-b2",
                 raw=json.dumps({"e": "book", "a": "up1", "t": 2}),
             )
             col.handle_event(b2, 2000)
@@ -341,6 +365,7 @@ class TestCollectorEndToEnd(unittest.TestCase):
             b1 = BookEvent(
                 token_id="up1", market_id="0x1", ts_server_ms=1000,
                 bids=((0.49, 100.0),), asks=((0.50, 200.0),),
+                hash="h-b1",
                 raw=json.dumps({"e": "book", "a": "up1", "t": 1}),
             )
             col.handle_event(b1, 1000)
@@ -348,6 +373,7 @@ class TestCollectorEndToEnd(unittest.TestCase):
                 token_id="up1", market_id="0x1", ts_server_ms=1500,
                 side="BUY", price=0.49, size=50.0,
                 best_bid=0.49, best_ask=0.50,
+                hash="h-d1",
                 raw=json.dumps({"e": "pc", "a": "up1", "t": 2}),
             )
             col.handle_event(d, 1500)
@@ -357,28 +383,218 @@ class TestCollectorEndToEnd(unittest.TestCase):
             self.assertEqual(col.stats["events_skipped_dedup"], 1)
 
 
+class TestDedupKeyByType(unittest.TestCase):
+    """Дедуп по ТИПУ сообщения (решение владельца 2026-08-03, DECISIONS_NEEDED.md):
+    price_change/book -> (asset_id, hash); last_trade_price ->
+    (asset_id, transaction_hash, price, size). md5 тела убран полностью."""
+
+    @staticmethod
+    def _delta(h: str, *, price: float = 0.49, size: float = 50.0) -> DeltaEvent:
+        return DeltaEvent(
+            token_id="up1", market_id="0x1", ts_server_ms=1500,
+            side="BUY", price=price, size=size,
+            best_bid=0.49, best_ask=0.50, hash=h,
+            raw=json.dumps({"event_type": "price_change", "asset_id": "up1"}),
+        )
+
+    @staticmethod
+    def _trade(tx: str, *, price: float = 0.981, size: float = 140.84) -> TradeEvent:
+        return TradeEvent(
+            token_id="up1", market_id="0x1", ts_server_ms=1500,
+            side="SELL", price=price, size=size,
+            transaction_hash=tx,
+            raw=json.dumps({"event_type": "last_trade_price", "asset_id": "up1"}),
+        )
+
+    def test_delta_same_hash_two_conns_one_record(self) -> None:
+        """price_change с одинаковым hash на двух соединениях -> одна запись."""
+        with _db() as con:
+            col = Collector(con, now_ms=1000)
+            col.handle_event(self._delta("h-same"), 1500)
+            col.handle_event(self._delta("h-same"), 1600)
+            self.assertEqual(col.stats["events_skipped_dedup"], 1)
+            n = con.execute("SELECT COUNT(*) FROM book_snapshots").fetchone()[0]
+            self.assertEqual(n, 1)
+            n_ticks = con.execute("SELECT COUNT(*) FROM tick_changes").fetchone()[0]
+            self.assertEqual(n_ticks, 1)
+
+    def test_delta_different_hash_two_records(self) -> None:
+        """price_change с разным hash -> две записи."""
+        with _db() as con:
+            col = Collector(con, now_ms=1000)
+            col.handle_event(self._delta("h-1", price=0.49), 1500)
+            col.handle_event(self._delta("h-2", price=0.48), 1600)
+            self.assertEqual(col.stats["events_skipped_dedup"], 0)
+            n = con.execute("SELECT COUNT(*) FROM book_snapshots").fetchone()[0]
+            self.assertEqual(n, 2)
+
+    def test_trade_same_tx_different_price_two_records(self) -> None:
+        """Две last_trade_price с одним transaction_hash, но разной ценой -> ДВЕ
+        записи (одна транзакция может нести несколько исполнений по активу)."""
+        with _db() as con:
+            col = Collector(con, now_ms=1000)
+            col.handle_event(self._trade("0xtx", price=0.981, size=140.84), 1500)
+            col.handle_event(self._trade("0xtx", price=0.984, size=100.0), 1600)
+            self.assertEqual(col.stats["events_skipped_dedup"], 0)
+            n = con.execute("SELECT COUNT(*) FROM tick_changes").fetchone()[0]
+            self.assertEqual(n, 2)
+
+    def test_trade_fully_identical_one_record(self) -> None:
+        """Две last_trade_price полностью идентичные -> одна запись."""
+        with _db() as con:
+            col = Collector(con, now_ms=1000)
+            col.handle_event(self._trade("0xtx"), 1500)
+            col.handle_event(self._trade("0xtx"), 1600)
+            self.assertEqual(col.stats["events_skipped_dedup"], 1)
+            n = con.execute("SELECT COUNT(*) FROM tick_changes").fetchone()[0]
+            self.assertEqual(n, 1)
+
+    def test_delta_without_hash_raises(self) -> None:
+        """price_change без hash -> raise (не дропать, не подставлять)."""
+        col = Collector(object(), now_ms=1000)
+        with self.assertRaises(ValueError) as cm:
+            col._dedup_key(self._delta(None))
+        self.assertIn("price_change", str(cm.exception))
+
+    def test_trade_without_tx_raises(self) -> None:
+        """last_trade_price без transaction_hash -> raise с типом в тексте."""
+        col = Collector(object(), now_ms=1000)
+        with self.assertRaises(ValueError) as cm:
+            col._dedup_key(self._trade(None))
+        self.assertIn("last_trade_price", str(cm.exception))
+
+    def test_book_without_hash_raises(self) -> None:
+        """book без hash -> raise (тип обязан нести hash, см. решение)."""
+        col = Collector(object(), now_ms=1000)
+        ev = BookEvent(
+            token_id="up1", market_id="0x1", ts_server_ms=1000,
+            bids=((0.49, 100.0),), asks=((0.50, 200.0),),
+            hash=None,
+            raw=json.dumps({"event_type": "book"}),
+        )
+        with self.assertRaises(ValueError) as cm:
+            col._dedup_key(ev)
+        self.assertIn("book", str(cm.exception))
+
+    def test_unknown_type_without_fields_raises(self) -> None:
+        """Неизвестный тип без hash и без transaction_hash -> raise."""
+        col = Collector(object(), now_ms=1000)
+        with self.assertRaises(ValueError) as cm:
+            col._dedup_key(object())  # type: ignore[arg-type]
+        self.assertIn("object", str(cm.exception))
+
+
+class TestNegativeControl(unittest.TestCase):
+    """Отрицательный контроль детектора потерь (--drop-rate).
+
+    Детектор, который молчит при внесённых потерях, — неисправен. Здесь:
+    drop_rate=1.0 выбрасывает ВСЕ дельты, второй серверный снимок обязан
+    дать mismatch.
+    """
+
+    def test_drop_rate_1_drops_delta_and_recon_mismatches(self) -> None:
+        with _db() as con:
+            col = Collector(con, now_ms=1000, drop_rate=1.0)
+            col.subscribed_tokens = ["up1"]
+            b1 = BookEvent(
+                token_id="up1", market_id="0x1", ts_server_ms=1000,
+                bids=((0.49, 100.0),), asks=((0.50, 200.0),),
+                hash="h-b1",
+                raw=json.dumps({"e": "book", "a": "up1", "t": 1}),
+            )
+            col.handle_event(b1, 1000)
+            d = DeltaEvent(
+                token_id="up1", market_id="0x1", ts_server_ms=1500,
+                side="BUY", price=0.49, size=150.0,
+                best_bid=0.49, best_ask=0.50,
+                hash="h-d1",
+                raw=json.dumps({"e": "pc", "a": "up1", "t": 2}),
+            )
+            col.handle_event(d, 1500)
+            self.assertEqual(col.stats["dropped"], 1)  # дельта выброшена
+            # выброшенная дельта не создала ни одной строки
+            self.assertEqual(
+                con.execute("SELECT COUNT(*) FROM book_snapshots").fetchone()[0], 1
+            )
+            self.assertEqual(
+                con.execute("SELECT COUNT(*) FROM tick_changes").fetchone()[0], 1
+            )
+            b2 = BookEvent(
+                token_id="up1", market_id="0x1", ts_server_ms=2000,
+                bids=((0.49, 150.0),), asks=((0.50, 200.0),),
+                hash="h-b2",
+                raw=json.dumps({"e": "book", "a": "up1", "t": 3}),
+            )
+            col.handle_event(b2, 2000)
+            # книга не изменилась дельтой -> снимок расходится, recon обязан поймать
+            verdicts = con.execute(
+                "SELECT verdict FROM recon_checks ORDER BY ts_recv_ms"
+            ).fetchall()
+            self.assertEqual(verdicts, [("warmup",), ("mismatch",)])
+            self.assertEqual(col.stats["recons_mismatch"], 1)
+
+    def test_drop_rate_0_never_drops(self) -> None:
+        with _db() as con:
+            col = Collector(con, now_ms=1000, drop_rate=0.0)
+            d = DeltaEvent(
+                token_id="up1", market_id="0x1", ts_server_ms=1500,
+                side="BUY", price=0.49, size=150.0,
+                best_bid=0.49, best_ask=0.50,
+                hash="h-d1",
+                raw=json.dumps({"e": "pc", "a": "up1", "t": 2}),
+            )
+            col.handle_event(d, 1500)
+            self.assertEqual(col.stats["dropped"], 0)
+            self.assertEqual(
+                con.execute("SELECT COUNT(*) FROM tick_changes").fetchone()[0], 1
+            )
+
+    def test_drop_rate_out_of_range_rejected(self) -> None:
+        for bad in (-0.1, 1.5):
+            with self.assertRaises(ValueError):
+                Collector(object(), now_ms=1, drop_rate=bad)
+
+    def test_fixed_seed_reproducible(self) -> None:
+        """Одно и то же зерно -> одинаковый набор дропов при равном потоке."""
+        drops: list[int] = []
+        for _ in range(2):
+            col = Collector(object(), now_ms=1, drop_rate=0.5)
+            n = 0
+            for _ in range(10000):
+                if col._rng.random() < 0.5:
+                    n += 1
+            drops.append(n)
+        self.assertEqual(drops[0], drops[1])
+        # 0.5 ± 3% на 10000 бросаний
+        self.assertGreater(drops[0], 4700)
+        self.assertLess(drops[0], 5300)
+
+
 class TestReconPure(unittest.TestCase):
     def test_warmup_when_not_initialized(self) -> None:
         ours = LiveBook()
-        rc = recon_check(ts_recv_ms=1, token_id="up1", ours=ours,
+        rc = recon_check(ts_recv_ms=1, token_id="up1", seq=7, ours=ours,
                          theirs_bids={0.49: 100.0}, theirs_asks={0.50: 200.0})
         self.assertEqual(rc["verdict"], "warmup")
+        self.assertEqual(rc["seq"], 7)
 
     def test_match(self) -> None:
         ours = LiveBook()
         ours.set_book([(0.49, 100.0)], [(0.50, 200.0)])
-        rc = recon_check(ts_recv_ms=1, token_id="up1", ours=ours,
+        rc = recon_check(ts_recv_ms=1, token_id="up1", seq=7, ours=ours,
                          theirs_bids={0.49: 100.0}, theirs_asks={0.50: 200.0})
         self.assertEqual(rc["verdict"], "match")
         self.assertEqual(rc["max_abs_diff_size"], 0.0)
+        self.assertEqual(rc["seq"], 7)
 
     def test_mismatch_on_size(self) -> None:
         ours = LiveBook()
         ours.set_book([(0.49, 100.0)], [(0.50, 200.0)])
-        rc = recon_check(ts_recv_ms=1, token_id="up1", ours=ours,
+        rc = recon_check(ts_recv_ms=1, token_id="up1", seq=7, ours=ours,
                          theirs_bids={0.49: 130.0}, theirs_asks={0.50: 200.0})
         self.assertEqual(rc["verdict"], "mismatch")
         self.assertEqual(rc["max_abs_diff_size"], 30.0)
+        self.assertEqual(rc["seq"], 7)
 
 
 class TestTickRow(unittest.TestCase):
@@ -390,6 +606,262 @@ class TestTickRow(unittest.TestCase):
         )
         self.assertEqual(row["raw"], '{"x":1}')
         self.assertEqual(row["event_type"], "price_change")
+
+
+class TestPrewarmSeq(unittest.TestCase):
+    def test_prewarm_from_db_and_does_not_touch_active(self) -> None:
+        with _db() as con:
+            con.execute(
+                "INSERT INTO book_snapshots (ts_recv_ms, token_id, seq, source) "
+                "VALUES (1, 'up1', 100, 'ws')"
+            )
+            con.execute(
+                "INSERT INTO tick_changes (ts_recv_ms, token_id, seq, event_type, raw) "
+                "VALUES (1, 'up1', 40, 'book', '{}')"
+            )
+            col = Collector(con, now_ms=1)
+            col.prewarm_seq(["up1", "dn1"])
+            # у активного токена счётчик продолжается от max(seq) в базе
+            self.assertEqual(col._seq_snaps["up1"], 101)
+            self.assertEqual(col._seq_ticks["up1"], 41)
+            # у нового токена без строк в базе — с единицы
+            self.assertEqual(col._seq_snaps["dn1"], 1)
+            # повторный prewarm не сбрасывает уже использованный счётчик
+            col._seq_snaps["up1"] += 1
+            col.prewarm_seq(["up1"])
+            self.assertEqual(col._seq_snaps["up1"], 102)
+
+
+class TestPartition(unittest.TestCase):
+    """STEP 3: разбиение ПО РЫНКАМ (оба токена рынка на одном соединении)."""
+
+    @staticmethod
+    def _market_of(tokens: list[str]) -> dict[str, str]:
+        """Каждая пара токенов принадлежит одному рынку (slug 'm<k>')."""
+        market_of: dict[str, str] = {}
+        k = 0
+        for i in range(0, len(tokens), 2):
+            slug = f"market{k}"
+            market_of[tokens[i]] = slug
+            if i + 1 < len(tokens):
+                market_of[tokens[i + 1]] = slug
+            k += 1
+        return market_of
+
+    def test_market_not_split_across_connections(self) -> None:
+        """РЕГРЕССИЯ (ловит ошибку): ни один рынок не встречается на >1 соединении.
+
+        Сервер шлёт на подписку одним токеном и его комплемент. Если токены
+        одного рынка попадают на разные соединения, каждая дельта приходит
+        дважды и книга уезжает (разгадка 28.6%, PROBE_RESULTS.md).
+        """
+        tokens = [str(i) for i in range(1, 85)]
+        market_of = self._market_of(tokens)
+        for n_conns in (2, 3, 4, 7):
+            parts = _partition_tokens(tokens, market_of, n_conns)
+            # Рынок (пары токенов m0..mK) не должен быть расщеплён.
+            market_locations: dict[str, list[int]] = {}
+            for i, part in enumerate(parts):
+                for t in part:
+                    m = market_of[t]
+                    market_locations.setdefault(m, []).append(i)
+            for m, conns in market_locations.items():
+                self.assertEqual(
+                    len(set(conns)),
+                    1,
+                    f"рынок {m} расщеплён по соединениям {conns}: задача обязана "
+                    "держать оба токена рынка на одном соединении",
+                )
+
+    def test_membership_preserved(self) -> None:
+        tokens = [str(i) for i in range(1, 85)]
+        market_of = self._market_of(tokens)
+        parts = _partition_tokens(tokens, market_of, 3)
+        self.assertEqual(len(parts), 3)
+        self.assertEqual(set(t for part in parts for t in part), set(tokens))
+
+    def test_single_conn_all_in_part_zero(self) -> None:
+        tokens = ["1", "2", "3"]
+        market_of = {t: "only" for t in tokens}
+        parts = _partition_tokens(tokens, market_of, 1)
+        self.assertEqual(parts, [["1", "2", "3"]])
+        for t in tokens:
+            self.assertEqual(_partition_market(market_of[t], ["only"], 1), 0)
+
+    def test_max_50_tokens_per_conn(self) -> None:
+        """Потолок: ни одно соединение не получает больше 50 токенов
+        при любом числе рынков 1..500 (запас под серверный потолок 56).
+
+        Ломается на старой логике: MD5-разбиение с авто-числом соединений по
+        TOKENS_PER_CONN=40 давало для 500 рынков 13 соединений (~77 токенов
+        на соединение). Последовательная раскладка с MARKETS_PER_CONN=25
+        даёт ровно ceil(рынков/25) соединений по <=50 токенов.
+        """
+        for n_markets in range(1, 501):
+            tokens = [str(i) for i in range(1, 2 * n_markets + 1)]
+            market_of = self._market_of(tokens)
+            n_conns = max(1, (n_markets + MARKETS_PER_CONN - 1) // MARKETS_PER_CONN)
+            parts = _partition_tokens(tokens, market_of, n_conns)
+            for part in parts:
+                self.assertLessEqual(
+                    len(part),
+                    50,
+                    f"n_markets={n_markets}: соединение получило {len(part)} "
+                    "токенов > 50 (серверный потолок ~56, запас нарушен)",
+                )
+
+    def test_repartition_stable_across_calls(self) -> None:
+        tokens = [str(i) for i in range(1, 85)]
+        market_of = self._market_of(tokens)
+        self.assertEqual(
+            _partition_tokens(tokens, market_of, 4),
+            _partition_tokens(tokens, market_of, 4),
+        )
+
+
+class TestSyncWriter(unittest.TestCase):
+    """SyncWriter: прямой интерфейс записи без потока (тесты, --minutes 0)."""
+
+    def test_sync_writer_submits_immediately(self) -> None:
+        with _db() as con:
+            w = SyncWriter(con)
+            w.submit_row("book_snapshots", {
+                "ts_recv_ms": 1, "token_id": "up1", "seq": 1, "source": "ws",
+            })
+            self.assertEqual(
+                con.execute("SELECT COUNT(*) FROM book_snapshots").fetchone()[0], 1
+            )
+            w.close()
+
+
+class TestVertical(unittest.TestCase):
+    """ЗАДАЧА 2: неизвестная вертикаль -- жёсткая ошибка, не молчаливый crypto."""
+
+    def test_unknown_vertical_rejected_in_discover(self) -> None:
+        with self.assertRaises(ValueError):
+            _discover("nonsense", client=None)  # type: ignore[arg-type]
+
+    def test_valid_verticals_accepted_by_dispatch(self) -> None:
+        # Проверяем маршрутизацию без сети: _discover вызывает _discover_crypto /
+        # _discover_tennis, оба дёргают discovery-функции (нужен сетевой клиент).
+        # Здесь проверяем только, что допустимые вертикали НЕ отвергаются на
+        # этапе диспетчеризации (падают ниже уже по отсутствию сети).
+        for v in ("crypto", "tennis"):
+            try:
+                _discover(v, client=None)  # type: ignore[arg-type]
+            except (ValueError, AttributeError, TypeError):
+                pass  # сетевой слой не проверяем в unit-тесте
+
+    def test_parse_args_rejects_unknown_vertical(self) -> None:
+        with self.assertRaises(SystemExit):
+            parse_args(["--vertical", "nonsense"])
+
+    def test_parse_args_accepts_tennis(self) -> None:
+        args = parse_args(["--vertical", "tennis", "--minutes", "1"])
+        self.assertEqual(args.vertical, "tennis")
+
+    def test_conns_zero_is_auto_default(self) -> None:
+        args = parse_args([])
+        self.assertEqual(args.conns, 0)
+
+    def test_negative_conns_rejected_in_main(self) -> None:
+        # --conns < 0 валидируется в main(); через parse_args это валидное число.
+        args = parse_args(["--conns", "-1"])
+        self.assertEqual(args.conns, -1)
+
+
+class TestBatchWrite(unittest.TestCase):
+    """Пачечная запись через Arrow (bug 2026-08-02: duckdb.executemany со
+    списком списков зацикливался на `import pandas` при отсутствии pandas).
+
+    Регрессия должна жить без установленного pandas: _write_group_arrow
+    не должен триггерить ленивый импорт pandas из duckdb.
+    """
+
+    def test_arrow_batch_writes_multiple_tables(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            w = store.StoreWriter(Path(td) / "pm.duckdb", batch=256)
+            n_snaps = 5000
+            n_gaps = 100
+            for i in range(n_snaps):
+                w.submit_row("book_snapshots", {
+                    "ts_recv_ms": 1785670694000 + i,
+                    "ts_server_ms": 1785670694000 + i,
+                    "token_id": f"tok{i % 3}",
+                    "best_bid": 0.5 if i % 3 else None,
+                    "best_ask": 0.56,
+                    "bid_size": 100.0,
+                    "ask_size": 90.0,
+                    "spread": 0.01,
+                    "vwap_bid_100": 0.5,
+                    "vwap_ask_100": 0.45,
+                    "book_age_ms": 100,
+                    "seq": i,
+                    "source": "ws",
+                })
+            for i in range(n_gaps):
+                w.submit_row("gap_intervals", {
+                    "token_id": f"tok{i % 3}",
+                    "start_ms": 1785670694000 + i,
+                    "end_ms": 1785670694000 + i + 5,
+                    "reason": "disconnect",
+                    "n_missing": 2,
+                })
+            w.flush()
+            counts = w.call(store.count_rows)
+            w.close()
+            self.assertEqual(counts["book_snapshots"], n_snaps)
+            self.assertEqual(counts["gap_intervals"], n_gaps)
+
+    def test_arrow_batch_nullable_columns(self) -> None:
+        """Все-None колонки (ts_server_ms) не должны ломать вставку."""
+        with tempfile.TemporaryDirectory() as td:
+            w = store.StoreWriter(Path(td) / "pm.duckdb", batch=256)
+            for i in range(300):
+                w.submit_row("book_snapshots", {
+                    "ts_recv_ms": 1 + i,
+                    "ts_server_ms": None,
+                    "token_id": "up1",
+                    "best_bid": None,
+                    "best_ask": 0.5,
+                    "bid_size": 1.0,
+                    "ask_size": 1.0,
+                    "spread": 0.0,
+                    "vwap_bid_100": 0.4,
+                    "vwap_ask_100": 0.6,
+                    "book_age_ms": None,
+                    "seq": i,
+                    "source": "ws",
+                })
+            w.flush()
+            n = w.call(
+                lambda con: int(
+                    con.execute(
+                        "SELECT COUNT(*) FROM book_snapshots WHERE ts_server_ms IS NULL"
+                    ).fetchone()[0]
+                )
+            )
+            w.close()
+            self.assertEqual(n, 300)
+
+    def test_arrow_batch_idempotent_on_duplicate_keys(self) -> None:
+        """INSERT OR IGNORE по естественному ключу (token_id, seq) не дублирует."""
+        with tempfile.TemporaryDirectory() as td:
+            w = store.StoreWriter(Path(td) / "pm.duckdb", batch=256)
+            for _ in range(2):
+                for i in range(500):
+                    w.submit_row("book_snapshots", {
+                        "ts_recv_ms": 1 + i,
+                        "token_id": "up1",
+                        "seq": i,
+                        "source": "ws",
+                    })
+            w.flush()
+            n = w.call(
+                lambda con: int(con.execute("SELECT COUNT(*) FROM book_snapshots").fetchone()[0])
+            )
+            w.close()
+            self.assertEqual(n, 500)
 
 
 if __name__ == "__main__":

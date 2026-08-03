@@ -4,6 +4,11 @@
 gap_intervals / recon_checks в duckdb (data/pm.duckdb) и экспортирует
 parquet-проекцию для сверки.
 
+Запись НЕ в цикле событий: приём только кладёт строки в очередь
+(store.StoreWriter), отдельный поток пишет пачками в транзакции.
+Это убирает duckdb из цикла событий — причину обрывов 1011
+'keepalive ping timeout' при бурстах (см. PROBE_RESULTS.md, Задача B).
+
 Известные факты протокола (см. SCHEMAS.md, раздел WS):
 - подписка: {"type": "market", "assets_ids": [token_id, ...]};
 - типы сообщений: book (полный снимок), price_change (дельты, массив
@@ -17,6 +22,13 @@ REST-бэкфилл /book (строки source='rest_backfill', наблюден
 разрыва НЕ считаются), затем продолжение. Смена рынка — НЕ разрыв:
 периодический re-discovery и переподписка, в gap_intervals не пишется.
 
+STEP 3 (запасной план, --conns N): если обрывы остаются на тех же
+~90 секундах при n_conns=1, рынки делятся на несколько параллельных
+соединений ПО РЫНКАМ через _partition_market (оба токена одного рынка
+на одном соединении; разбиение по токенам не используется, см. разгадку
+28.6% в PROBE_RESULTS.md). Раскладка последовательная по отсортированным
+slug, максимум MARKETS_PER_CONN рынков на соединение.
+
 Запуск:  python -m src.collect.ws_collector --minutes 15 --vertical crypto
 """
 
@@ -26,7 +38,9 @@ import argparse
 import asyncio
 import json
 import logging
+import random
 import subprocess
+import threading
 import time
 import uuid
 from collections import deque
@@ -49,6 +63,16 @@ BOOK_URL = "https://clob.polymarket.com/book"
 GAMMA_URL = "https://gamma-api.polymarket.com"
 USER_AGENT = "pm-collect/0.1 (personal research)"
 
+# Допустимые вертикали. Неизвестная вертикаль -- жёсткая ошибка, а не
+# молчаливый fallback на crypto (баг молчаливого игнорирования --vertical).
+VALID_VERTICALS = frozenset({"crypto", "tennis"})
+# STEP 3: потолок РЫНКОВ на одно соединение для АВТО-выбора числа соединений
+# (n_conns=0). Деление ВСЕГДА по рынкам: оба токена одного рынка на одном
+# соединении. Разбиение по токенам НЕ используется (дубль дельт).
+# Измеренный серверный потолок: 70 токенов отваливаются ~77 c, 60 и 56
+# выживают 191 c; 25 рынков = 50 токенов дают запас под порог 56.
+MARKETS_PER_CONN = 25
+
 PING_INTERVAL_S = 20.0
 # Поллимаркет-сервер подтверждает ping->pong быстро (0.1s, зонд), но при
 # бурстах на одном цикле событий ответ задерживается и сервер закрывает
@@ -64,7 +88,12 @@ RECONNECT_MAX_S = 60.0
 SILENCE_THRESHOLD_S = 120.0
 MARKET_RECHECK_S = 60.0
 EXPORT_INTERVAL_S = 60.0
+STATS_INTERVAL_S = 5.0
 MAX_DEDUP = 20000
+# Отрицательный контроль детектора потерь (recon_checks): --drop-rate выбрасывает
+# долю price_change ДО применения к книге. Зерно фиксированное — прогон
+# воспроизводим. Только для тестового прогона (--minutes > 0).
+DROP_SEED = 20260802
 VWAP_QUANTITY = 100.0
 
 _RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
@@ -119,6 +148,7 @@ class BookEvent:
     ts_server_ms: int | None
     bids: tuple[tuple[float, float], ...]
     asks: tuple[tuple[float, float], ...]
+    hash: str | None
     raw: str
 
 
@@ -134,6 +164,7 @@ class DeltaEvent:
     size: float
     best_bid: float | None
     best_ask: float | None
+    hash: str | None
     raw: str
 
 
@@ -147,6 +178,7 @@ class TradeEvent:
     side: str | None
     price: float
     size: float
+    transaction_hash: str | None
     raw: str
 
 
@@ -187,6 +219,7 @@ def interpret_message(payload: Any, ts_recv_ms: int) -> tuple[list[Event], dict[
                     ts_server_ms=ts_server,
                     bids=_parse_levels(payload.get("bids")),
                     asks=_parse_levels(payload.get("asks")),
+                    hash=payload.get("hash"),
                     raw=raw,
                 )
             )
@@ -212,6 +245,7 @@ def interpret_message(payload: Any, ts_recv_ms: int) -> tuple[list[Event], dict[
                         size=size,
                         best_bid=_as_float(e.get("best_bid")),
                         best_ask=_as_float(e.get("best_ask")),
+                        hash=e.get("hash"),
                         raw=raw,
                     )
                 )
@@ -229,6 +263,7 @@ def interpret_message(payload: Any, ts_recv_ms: int) -> tuple[list[Event], dict[
                     side=payload.get("side"),
                     price=price,
                     size=size,
+                    transaction_hash=payload.get("transaction_hash"),
                     raw=raw,
                 )
             )
@@ -405,15 +440,42 @@ def utc_ms() -> int:
     return int(time.time() * 1000)
 
 
+def _install_fault_watchdog(dump_after_s: float) -> None:
+    """Временная диагностика: дамп всех потоков через N секунд в stderr."""
+    import faulthandler
+    import sys
+
+    def _dump() -> None:
+        faulthandler.dump_traceback(file=sys.stderr, all_threads=True)
+
+    threading.Timer(dump_after_s, _dump).start()
+
+
 class Collector:
     """Приёмник WS-сообщений: LiveBook, строки в duckdb, гэпы, статистика.
 
     Сетевой части не содержит (тестируется без сети): события подаются через
     handle_event, разрывы — через record_disconnect.
+
+    Запись идёт через writer (StoreWriter — поток-писатель в проде,
+    SyncWriter — синхронно в тестах). Цикл событий не трогает duckdb.
     """
 
-    def __init__(self, con: Any, *, now_ms: int) -> None:
-        self.con = con
+    def __init__(
+        self,
+        con: Any = None,
+        *,
+        writer: Any = None,
+        now_ms: int,
+        drop_rate: float = 0.0,
+    ) -> None:
+        # Отрицательный контроль: drop_rate>0 выбрасывает долю price_change
+        # до применения к книге (фиксированное зерно). Прогон воспроизводим.
+        if not (0.0 <= drop_rate <= 1.0):
+            raise ValueError(f"drop_rate вне [0, 1]: {drop_rate!r}")
+        if writer is None:
+            writer = store.SyncWriter(con)
+        self.writer = writer
         self.livebooks: dict[str, LiveBook] = {}
         self._seq_snaps: dict[str, int] = {}
         self._seq_ticks: dict[str, int] = {}
@@ -424,6 +486,8 @@ class Collector:
         self._silence_open = False
         self.subscribed_tokens: list[str] = []
         self.last_activity_ms = now_ms
+        self.drop_rate = float(drop_rate)
+        self._rng = random.Random(DROP_SEED)
         self.stats = {
             "messages": 0,
             "unknown_types": 0,
@@ -434,6 +498,7 @@ class Collector:
             "recons": 0,
             "recons_mismatch": 0,
             "reconnects": 0,
+            "dropped": 0,
         }
         self.heartbeat = {
             "ping_interval_s": PING_INTERVAL_S,
@@ -442,16 +507,43 @@ class Collector:
             "n_pings_fired": 0,
         }
 
+    def prewarm_seq(self, token_ids: Sequence[str]) -> None:
+        """Предзаполнить счётчики seq для токенов ДО цикла приёма.
+
+        Ленивый writer.call() в _seq_snap/_seq_tick блокировал бы цикл
+        событий на первом событии токена (при бурстах — срыв keepalive).
+        Один батч-запрос до подписки снимает все чтения из цикла приёма.
+        Уже активные счётчики (in-memory выше базы) НЕ трогаем.
+        """
+        missing = [
+            t
+            for t in token_ids
+            if t not in self._seq_snaps or t not in self._seq_ticks
+        ]
+        if not missing:
+            return
+        snaps = self.writer.call(store.current_seqs, "book_snapshots", missing)
+        ticks = self.writer.call(store.current_seqs, "tick_changes", missing)
+        for t in missing:
+            if t not in self._seq_snaps:
+                self._seq_snaps[t] = snaps.get(t, 1)
+            if t not in self._seq_ticks:
+                self._seq_ticks[t] = ticks.get(t, 1)
+
     def _seq_snap(self, token_id: str) -> int:
         if token_id not in self._seq_snaps:
-            self._seq_snaps[token_id] = store.current_seq(self.con, "book_snapshots", token_id)
+            self._seq_snaps[token_id] = self.writer.call(
+                store.current_seq, "book_snapshots", token_id
+            )
         value = self._seq_snaps[token_id]
         self._seq_snaps[token_id] += 1
         return value
 
     def _seq_tick(self, token_id: str) -> int:
         if token_id not in self._seq_ticks:
-            self._seq_ticks[token_id] = store.current_seq(self.con, "tick_changes", token_id)
+            self._seq_ticks[token_id] = self.writer.call(
+                store.current_seq, "tick_changes", token_id
+            )
         value = self._seq_ticks[token_id]
         self._seq_ticks[token_id] += 1
         return value
@@ -469,17 +561,50 @@ class Collector:
         return False
 
     def _dedup_key(self, event: Event) -> str:
+        """Ключ анти-дубля зависит от ТИПА сообщения (серверные поля, не md5).
+
+        Collector ОДИН на все соединения (общий writer, общий _dedup_set),
+        поэтому дедуп идёт ГЛОБАЛЬНО поверх всех соединений: сервер шлёт на
+        подписку одним токеном и его комплемент, и при мультисоединении
+        каждая дельта приходит несколько раз — ключ снимает все, кроме
+        первой, независимо от того, через какое соединение она пришла.
+
+        Правило (решение владельца 2026-08-03, см. DECISIONS_NEEDED.md):
+        - book          -> (asset_id, hash)          # hash сообщения
+        - price_change  -> (asset_id, hash)          # hash элемента price_changes
+        - last_trade_price -> (asset_id, transaction_hash, price, size)
+          одна транзакция может нести несколько исполнений по активу, и ключ
+          только по (asset_id, transaction_hash) склеил бы разные сделки.
+        Тип без hash и без transaction_hash -> ValueError с event_type в тексте
+        (не дропать и не подставлять заглушку).
+        """
         if isinstance(event, BookEvent):
-            return f"book|{event.token_id}|{event.ts_server_ms}|{event.raw}"
+            return self._key_by_hash(event.token_id, event.hash, "book")
         if isinstance(event, DeltaEvent):
+            return self._key_by_hash(event.token_id, event.hash, "price_change")
+        if isinstance(event, TradeEvent):
+            if not event.transaction_hash:
+                raise ValueError(
+                    f"тип 'last_trade_price' без transaction_hash (token_id="
+                    f"{event.token_id!r}): дедуп невозможен"
+                )
             return (
-                f"delta|{event.token_id}|{event.ts_server_ms}|{event.price}|"
-                f"{event.size}|{event.side}|{event.best_bid}|{event.best_ask}"
+                f"{event.token_id}|{event.transaction_hash}|"
+                f"{event.price}|{event.size}"
             )
-        return (
-            f"trade|{event.token_id}|{event.ts_server_ms}|{event.price}|"
-            f"{event.size}|{event.side}"
+        raise ValueError(
+            f"неизвестный тип события {type(event).__name__}: нет ни hash, "
+            "ни transaction_hash"
         )
+
+    @staticmethod
+    def _key_by_hash(token_id: str, value: str | None, event_type: str) -> str:
+        if not value:
+            raise ValueError(
+                f"тип {event_type!r} без hash (token_id={token_id!r}): "
+                "дедуп невозможен"
+            )
+        return f"{token_id}|{value}"
 
     def _livebook(self, token_id: str) -> LiveBook:
         book = self.livebooks.get(token_id)
@@ -501,10 +626,11 @@ class Collector:
             self._handle_trade(event, ts_recv_ms)
 
     def _handle_book(self, event: BookEvent, ts_recv_ms: int) -> None:
+        if self._is_duplicate(self._dedup_key(event)):
+            return
         live = self._livebook(event.token_id)
         seq = self._seq_snap(event.token_id)
-        store.insert_row(
-            self.con,
+        self.writer.submit_row(
             "book_snapshots",
             snapshot_from_levels(
                 token_id=event.token_id,
@@ -523,18 +649,18 @@ class Collector:
         rc = recon_check(
             ts_recv_ms=ts_recv_ms,
             token_id=event.token_id,
+            seq=seq,
             ours=live,
             theirs_bids=theirs_bids,
             theirs_asks=theirs_asks,
         )
-        store.insert_row(self.con, "recon_checks", rc)
+        self.writer.submit_row("recon_checks", rc)
         self.stats["recons"] += 1
         if rc["verdict"] == "mismatch":
             self.stats["recons_mismatch"] += 1
 
         if event.token_id in self.pending_resync:
-            store.insert_row(
-                self.con,
+            self.writer.submit_row(
                 "gap_intervals",
                 {
                     "token_id": event.token_id,
@@ -548,8 +674,7 @@ class Collector:
 
         live.set_book(event.bids, event.asks)
 
-        store.insert_row(
-            self.con,
+        self.writer.submit_row(
             "tick_changes",
             tick_row(
                 ts_recv_ms=ts_recv_ms,
@@ -574,11 +699,15 @@ class Collector:
             return
         if self._is_duplicate(self._dedup_key(event)):
             return
+        # Отрицательный контроль: выбрасываем долю price_change ДО применения
+        # к книге — книга расходится с сервером, recon_checks обязан поймать.
+        if self.drop_rate > 0.0 and self._rng.random() < self.drop_rate:
+            self.stats["dropped"] += 1
+            return
         live.apply_change(event.side, event.price, event.size)
 
         seq = self._seq_snap(event.token_id)
-        store.insert_row(
-            self.con,
+        self.writer.submit_row(
             "book_snapshots",
             snapshot_from_delta(
                 token_id=event.token_id,
@@ -592,8 +721,7 @@ class Collector:
         )
         self.stats["snapshots"] += 1
 
-        store.insert_row(
-            self.con,
+        self.writer.submit_row(
             "tick_changes",
             tick_row(
                 ts_recv_ms=ts_recv_ms,
@@ -614,8 +742,7 @@ class Collector:
     def _handle_trade(self, event: TradeEvent, ts_recv_ms: int) -> None:
         if self._is_duplicate(self._dedup_key(event)):
             return
-        store.insert_row(
-            self.con,
+        self.writer.submit_row(
             "tick_changes",
             tick_row(
                 ts_recv_ms=ts_recv_ms,
@@ -633,9 +760,24 @@ class Collector:
         )
         self.stats["ticks"] += 1
 
-    def observe_silence(self, now_ms: int) -> None:
-        """Мягкий флаг тишины: молчание дольше порога — time_gap, не разрыв."""
-        idle_s = (now_ms - self.last_activity_ms) / 1000.0
+    def observe_silence(
+        self,
+        now_ms: int,
+        tokens: Sequence[str] | None = None,
+        *,
+        from_ms: int | None = None,
+    ) -> None:
+        """Мягкий флаг тишины: молчание дольше порога — time_gap, не разрыв.
+
+        tokens — те токены, чей канал замолчал (при мультисоединении —
+        только своё соединение, не все подписки). from_ms — начало окна
+        тишины этого соединения (при мультисоединении своё, не глобальное).
+        """
+        if tokens is None:
+            tokens = self.subscribed_tokens
+        if from_ms is None:
+            from_ms = self.last_activity_ms
+        idle_s = (now_ms - from_ms) / 1000.0
         self.heartbeat["max_silence_s"] = max(self.heartbeat["max_silence_s"], idle_s)
         if idle_s >= PING_INTERVAL_S:
             self.heartbeat["n_pings_fired"] += 1
@@ -643,13 +785,12 @@ class Collector:
             if not self._silence_open:
                 self._silence_open = True
                 self.heartbeat["n_silence_episodes"] += 1
-                for token_id in self.subscribed_tokens:
-                    store.insert_row(
-                        self.con,
+                for token_id in tokens:
+                    self.writer.submit_row(
                         "gap_intervals",
                         {
                             "token_id": token_id,
-                            "start_ms": self.last_activity_ms,
+                            "start_ms": from_ms,
                             "end_ms": now_ms,
                             "reason": "time_gap",
                             "n_missing": None,
@@ -668,8 +809,7 @@ class Collector:
         """Обрыв соединения: gap_intervals(reason=disconnect) по всем токенам."""
         self.stats["reconnects"] += 1
         for token_id in tokens:
-            store.insert_row(
-                self.con,
+            self.writer.submit_row(
                 "gap_intervals",
                 {
                     "token_id": token_id,
@@ -697,11 +837,13 @@ class WSHandler:
         self.tokens = list(tokens)
         self.market_slugs = dict(market_slugs)
         self._market_id_written: set[str] = set()
+        self.last_activity_ms: int | None = None
 
     def handle_message(self, raw: str, ts_recv_ms: int) -> None:
         if isinstance(raw, (bytes, bytearray)):
             raw = raw.decode("utf-8", errors="replace")
         self.collector.stats["messages"] += 1
+        self.last_activity_ms = ts_recv_ms
         try:
             payload = json.loads(raw)
         except ValueError:
@@ -710,7 +852,9 @@ class WSHandler:
         events, markets = interpret_message(payload, ts_recv_ms)
         for token_id, market_id in markets.items():
             if market_id and token_id not in self._market_id_written:
-                store.update_market_field(self.collector.con, token_id, market_id=market_id)
+                self.collector.writer.submit_call(
+                    store.update_market_field, token_id, market_id=market_id
+                )
                 self._market_id_written.add(token_id)
         for event in events:
             self.collector.handle_event(event, ts_recv_ms)
@@ -731,7 +875,74 @@ def _discover_crypto(client: httpx.Client) -> tuple[list[str], dict[str, str]]:
     return tokens, slugs
 
 
+def _discover_tennis(client: httpx.Client) -> tuple[list[str], dict[str, str]]:
+    """Матчевые winner-рынки тенниса (одиночки) через src.validate.discovery."""
+    from src.validate.discovery import tennis_matches
+
+    res = tennis_matches(client)
+    tokens: list[str] = []
+    slugs: dict[str, str] = {}
+    for m in res.matches:
+        for token_id in m.token_ids:
+            tokens.append(token_id)
+            slugs[token_id] = m.market_slug
+    return tokens, slugs
+
+
+def _discover(vertical: str, client: httpx.Client) -> tuple[list[str], dict[str, str]]:
+    """Discovery по вертикали. Неизвестная вертикаль -> ValueError."""
+    if vertical == "crypto":
+        return _discover_crypto(client)
+    if vertical == "tennis":
+        return _discover_tennis(client)
+    raise ValueError(f"неизвестная вертикаль: {vertical!r}; допустимо: {sorted(VALID_VERTICALS)}")
+
+
 BACKFILL_CONCURRENCY = 16
+
+
+def _partition_market(market_key: str, markets_sorted: Sequence[str], n_conns: int) -> int:
+    """Стабильное разбиение РЫНКОВ по соединениям.
+
+    Ключ — market_key (слаг рынка, общий для обоих токенов одного рынка),
+    а НЕ token_id. Оба токена одного рынка обязаны попасть на одно соединение:
+    иначе сервер (он шлёт на подписку одним токеном и его комплемент) отдаёт
+    каждое событие ДВАЖДЫ — по разу на каждое из двух соединений, и книга
+    уезжает (см. PROBE_RESULTS.md, разгадка 28.6%).
+
+    Раскладка ПОСЛЕДОВАТЕЛЬНАЯ: рынки сортируются по slug (markets_sorted),
+    занимают корзину bin = rank // MARKETS_PER_CONN. Максимум MARKETS_PER_CONN
+    рынков (50 токенов) на соединение — запас под измеренный серверный потолок
+    (56 токенов жили 191 c, 70 отвалились ~77 c). Раскладка детерминирована и
+    стабильна между переоткрытиями соединений и re-discovery. n_conns <= 1 ->
+    всегда 0.
+    """
+    if n_conns <= 1:
+        return 0
+    rank = markets_sorted.index(market_key)
+    return min(rank // MARKETS_PER_CONN, n_conns - 1)
+
+
+def _partition_tokens(
+    tokens: Sequence[str], market_of: dict[str, str], n_conns: int
+) -> list[list[str]]:
+    """tokens -> n_conns списков, разбитых ПО РЫНКАМ (не по токенам).
+
+    Группировка: токены одного рынка (общий market_of[token_id]) попадают на
+    одно соединение. Рынки сортируются по slug и раскладываются последовательно
+    (bin = rank // MARKETS_PER_CONN), не более MARKETS_PER_CONN рынков на
+    соединение. Порядок токенов на соединении стабилен, но не гарантирован
+    по исходному списку — важно только то, что рынок неделим и потолок 50
+    токенов не превышен.
+    """
+    by_market: dict[str, list[str]] = {}
+    for t in tokens:
+        by_market.setdefault(market_of.get(t, t), []).append(t)
+    markets_sorted = sorted(by_market)
+    parts: list[list[str]] = [[] for _ in range(n_conns)]
+    for mkey, members in by_market.items():
+        parts[_partition_market(mkey, markets_sorted, n_conns)].extend(members)
+    return parts
 
 
 async def _rest_backfill(
@@ -771,8 +982,7 @@ async def _rest_backfill(
         except ValueError:
             return
         seq = collector._seq_snap(token_id)
-        store.insert_row(
-            collector.con,
+        collector.writer.submit_row(
             "book_snapshots",
             snapshot_from_levels(
                 token_id=token_id,
@@ -809,15 +1019,16 @@ def _register_markets(
     slugs: dict[str, str],
     *,
     start_ms: int,
+    vertical: str,
 ) -> None:
     for token_id in tokens:
-        store.upsert_market(
-            collector.con,
+        collector.writer.submit_call(
+            store.upsert_market,
             {
                 "token_id": token_id,
                 "market_id": None,
                 "event_id": slugs.get(token_id),
-                "vertical": "crypto",
+                "vertical": vertical,
                 "start_ms": start_ms,
                 "end_ms": None,
                 "resolved": False,
@@ -825,23 +1036,57 @@ def _register_markets(
         )
 
 
-def _resubscribe(handler: WSHandler, collector: Collector) -> bool:
-    """Периодический re-discovery: новые токены -> markets_tracked + подписка."""
+async def _resubscribe(
+    handler: WSHandler,
+    collector: Collector,
+    *,
+    n_conns: int = 1,
+    partition: int = 0,
+    vertical: str = "crypto",
+) -> bool:
+    """Периодический re-discovery: новые токены -> markets_tracked + подписка.
+
+    Discovery уходит в поток (asyncio.to_thread): синхронный httpx в цикле
+    событий блокировал бы ответ на keepalive-пинг сервера.
+
+    При мультисоединении (n_conns > 1) соединение подписывается ТОЛЬКО на
+    свои токены (разбиение ПО РЫНКАМ через _partition_market): один рынок
+    (оба его токена) ровно на одном соединении.
+    """
     try:
-        with httpx.Client(base_url=GAMMA_URL, timeout=30.0) as gc:
-            tokens, slugs = _discover_crypto(gc)
+        tokens, slugs = await asyncio.to_thread(_discover_with_client, vertical)
     except Exception as exc:  # noqa: BLE001
         log.warning("re-discovery не удался: %r", exc)
         return False
+    markets_sorted = sorted({slugs.get(t, t) for t in tokens})
+    mine = [
+        t
+        for t in tokens
+        if _partition_market(slugs.get(t, t), markets_sorted, n_conns) == partition
+    ]
     known = set(handler.tokens)
-    new = [t for t in tokens if t not in known]
+    new = [t for t in mine if t not in known]
     if not new:
         return False
-    _register_markets(collector, new, slugs, start_ms=utc_ms())
-    handler.tokens = list(tokens)
+    _register_markets(collector, new, slugs, start_ms=utc_ms(), vertical=vertical)
+    handler.tokens = mine
     collector.subscribed_tokens = list(tokens)
-    log.info("re-discovery: новых токенов %d (всего %d)", len(new), len(handler.tokens))
+    collector.prewarm_seq(new)
+    log.info(
+        "re-discovery (соед. %d/%d): новых %d, своих %d, всего %d",
+        partition + 1,
+        n_conns,
+        len(new),
+        len(mine),
+        len(tokens),
+    )
     return True
+
+
+def _discover_with_client(vertical: str = "crypto") -> tuple[list[str], dict[str, str]]:
+    """Синхронный discovery на собственном httpx.Client (для to_thread)."""
+    with httpx.Client(base_url=GAMMA_URL, timeout=30.0) as gc:
+        return _discover(vertical, gc)
 
 
 async def _run_connection(
@@ -850,12 +1095,16 @@ async def _run_connection(
     *,
     deadline: int,
     export_root: Path,
+    n_conns: int = 1,
+    partition: int = 0,
+    vertical: str = "crypto",
 ) -> None:
     """Одна стабильная WS-сессия: подключение, приём, ротация, экспорт.
     Переподключение с экспоненциальной задержкой внутри. Выход по deadline."""
     delay = RECONNECT_BASE_S
     last_recheck = time.monotonic()
     last_export = time.monotonic()
+    last_stats = time.monotonic()
     while True:
         if utc_ms() >= deadline:
             return
@@ -876,34 +1125,55 @@ async def _run_connection(
         delay = RECONNECT_BASE_S
         try:
             async with ws:
-                log.info("подключено; подписка %d токенов", len(handler.tokens))
+                log.info(
+                    "подключено (соед. %d/%d); подписка %d токенов",
+                    partition + 1,
+                    n_conns,
+                    len(handler.tokens),
+                )
                 await ws.send(json.dumps({"type": "market", "assets_ids": handler.tokens}))
+                collector.prewarm_seq(handler.tokens)
                 await _rest_backfill(collector, handler.tokens, ts_recv_ms=utc_ms())
                 while True:
+                    now_wall = utc_ms()
+                    if now_wall >= deadline:
+                        return
                     try:
                         raw = await asyncio.wait_for(ws.recv(), timeout=RECV_TIMEOUT_S)
                     except asyncio.TimeoutError:
-                        collector.observe_silence(utc_ms())
-                        if utc_ms() >= deadline:
-                            return
+                        collector.observe_silence(
+                            utc_ms(), tokens=handler.tokens, from_ms=handler.last_activity_ms
+                        )
                         continue
                     handler.handle_message(raw, utc_ms())
-                    # Бар: обработка сообщения синхронна (вставки в duckdb).
+                    # Бар: обработка сообщения синхронна (разбор + очередь).
                     # Явный yield даёт циклу событий обслужить управляющие кадры
-                    # (pong на пинг сервера), иначе при бурстах сервер закрывает
-                    # соединение 1011 'keepalive ping timeout'.
+                    # (pong на пинг сервера); duckdb не трогается вообще —
+                    # запись в отдельном потоке-писателе.
                     await asyncio.sleep(0)
 
                     now = time.monotonic()
                     if now - last_recheck >= MARKET_RECHECK_S:
                         last_recheck = now
-                        if _resubscribe(handler, collector):
+                        if await _resubscribe(
+                            handler, collector, n_conns=n_conns, partition=partition,
+                            vertical=vertical,
+                        ):
                             await ws.send(
                                 json.dumps({"type": "market", "assets_ids": handler.tokens})
                             )
                     if now - last_export >= EXPORT_INTERVAL_S:
                         last_export = now
-                        store.export_tables(collector.con, export_root)
+                        collector.writer.submit_call(store.export_tables, export_root)
+                    if now - last_stats >= STATS_INTERVAL_S:
+                        last_stats = now
+                        log.info(
+                            "stats: %s | msgs_total=%d snap=%d gap=%d",
+                            json.dumps(collector.stats, ensure_ascii=False),
+                            collector.stats["messages"],
+                            collector.stats["snapshots"],
+                            collector.stats["reconnects"],
+                        )
         except websockets.ConnectionClosed as exc:
             log.warning("соединение закрыто: %r", exc)
         except asyncio.CancelledError:
@@ -913,8 +1183,12 @@ async def _run_connection(
         if utc_ms() >= deadline:
             return
         collector.record_disconnect(
-            collector.subscribed_tokens,
-            ts_from_ms=collector.last_activity_ms,
+            handler.tokens,
+            ts_from_ms=(
+                handler.last_activity_ms
+                if handler.last_activity_ms is not None
+                else collector.last_activity_ms
+            ),
             ts_to_ms=utc_ms(),
         )
 
@@ -924,20 +1198,32 @@ async def run(
     minutes: float,
     db_path: Path,
     export_root: Path,
+    drop_rate: float = 0.0,
+    n_conns: int = 1,
+    vertical: str = "crypto",
 ) -> int:
-    """Основной цикл: сессия, discovery, приём, гэпы, экспорт."""
-    con = store.connect(db_path)
+    """Основной цикл: сессия, discovery, приём, гэпы, экспорт.
+
+    n_conns > 1 — STEP 3 (запасной план): рынки делятся ПО РЫНКАМ
+    (оба токена одного рынка на одном соединении), не по токенам.
+    n_conns == 0 — авто: число соединений = ceil(число рынков /
+    MARKETS_PER_CONN), минимум 1 (потолок 50 токенов на соединение).
+    """
+    if vertical not in VALID_VERTICALS:
+        raise ValueError(
+            f"неизвестная вертикаль: {vertical!r}; допустимо: {sorted(VALID_VERTICALS)}"
+        )
+    writer = store.StoreWriter(db_path)
     session_id = uuid.uuid4().hex[:12]
     started_ms = utc_ms()
     deadline = started_ms + int(minutes * 60_000)
 
     # process_restart: были прошлые сессии -> документируем простой по токенам
-    prev_start, prev_end = store.last_session_bounds(con)
+    prev_start, prev_end = writer.call(store.last_session_bounds)
     if prev_start is not None:
         from_ts = prev_end if prev_end is not None else prev_start
-        for token_id in store.tracked_tokens(con):
-            store.insert_row(
-                con,
+        for token_id in writer.call(store.tracked_tokens):
+            writer.submit_row(
                 "gap_intervals",
                 {
                     "token_id": token_id,
@@ -948,30 +1234,57 @@ async def run(
                 },
             )
 
-    collector = Collector(con, now_ms=started_ms)
+    collector = Collector(writer=writer, now_ms=started_ms, drop_rate=drop_rate)
 
     with httpx.Client(base_url=GAMMA_URL, timeout=30.0) as gc:
-        tokens, slugs = _discover_crypto(gc)
-    _register_markets(collector, tokens, slugs, start_ms=started_ms)
+        tokens, slugs = _discover(vertical, gc)
+    if n_conns == 0:
+        n_markets = len({slugs.get(t, t) for t in tokens})
+        n_conns = max(1, (n_markets + MARKETS_PER_CONN - 1) // MARKETS_PER_CONN)
+    _register_markets(collector, tokens, slugs, start_ms=started_ms, vertical=vertical)
     collector.subscribed_tokens = list(tokens)
 
-    store.start_session(
-        con,
+    writer.submit_call(
+        store.start_session,
         session_id=session_id,
         git_commit=git_head(),
         markets_subscribed=len(tokens),
         now_ms=started_ms,
     )
-    handler = WSHandler(collector, tokens=tokens, market_slugs=slugs)
     print(
-        f"[collector] session {session_id}; токенов: {len(tokens)}; "
-        f"бд: {db_path}; минуты: {minutes}",
+        f"[collector] session {session_id}; вертикаль: {vertical}; токенов: {len(tokens)}; "
+        f"соединений: {n_conns}; бд: {db_path}; минуты: {minutes}",
         flush=True,
     )
 
     exit_reason = "user_stop"
     try:
-        await _run_connection(handler, collector, deadline=deadline, export_root=export_root)
+        if n_conns > 1:
+            parts = _partition_tokens(tokens, slugs, n_conns)
+            for i, part in enumerate(parts):
+                print(
+                    f"[collector] соединение {i + 1}/{n_conns}: токенов {len(part)}",
+                    flush=True,
+                )
+            tasks = [
+                _run_connection(
+                    WSHandler(collector, tokens=part, market_slugs=slugs),
+                    collector,
+                    deadline=deadline,
+                    export_root=export_root,
+                    n_conns=n_conns,
+                    partition=i,
+                    vertical=vertical,
+                )
+                for i, part in enumerate(parts)
+            ]
+            await asyncio.gather(*tasks)
+        else:
+            handler = WSHandler(collector, tokens=tokens, market_slugs=slugs)
+            await _run_connection(
+                handler, collector, deadline=deadline, export_root=export_root,
+                vertical=vertical,
+            )
     except KeyboardInterrupt:
         exit_reason = "user_stop"
     except Exception as exc:  # noqa: BLE001 — процесс должен пережить любую ошибку
@@ -979,8 +1292,16 @@ async def run(
         log.exception("коллектор упал")
     finally:
         now = utc_ms()
-        store.end_session(con, session_id=session_id, exit_reason=exit_reason, now_ms=now)
-        store.export_tables(con, export_root)
+        try:
+            writer.call(
+                store.end_session,
+                session_id=session_id,
+                exit_reason=exit_reason,
+                now_ms=now,
+            )
+            writer.call(store.export_tables, export_root)
+        finally:
+            writer.close()
         print(f"[collector] завершение: {exit_reason}", flush=True)
         print(f"[collector] stats: {json.dumps(collector.stats)}", flush=True)
         print(f"[collector] heartbeat: {json.dumps(collector.heartbeat)}", flush=True)
@@ -990,23 +1311,57 @@ async def run(
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="WS-коллектор снимков стакана Polymarket")
     p.add_argument("--minutes", type=float, default=15.0, help="длительность прогона, мин")
-    p.add_argument("--vertical", default="crypto", help="вертикаль (crypto)")
+    p.add_argument(
+        "--vertical",
+        default="crypto",
+        choices=sorted(VALID_VERTICALS),
+        help=f"вертикаль ({', '.join(sorted(VALID_VERTICALS))})",
+    )
     p.add_argument("--db", default=str(store.DEFAULT_DB_PATH), help="путь к duckdb")
     p.add_argument("--export-dir", default=str(store.DEFAULT_EXPORT_ROOT), help="parquet-экспорт")
+    p.add_argument(
+        "--drop-rate",
+        type=float,
+        default=0.0,
+        help="отрицательный контроль: доля выбрасываемых price_change до применения "
+        "к книге (0..1, фиксированное зерно). Только для тестового прогона "
+        "(--minutes > 0); в рабочем режиме (--minutes 0) недоступен.",
+    )
+    p.add_argument(
+        "--conns",
+        type=int,
+        default=0,
+        help="число параллельных WS-соединений (STEP 3): РЫНКИ делятся "
+        "по рынкам (оба токена одного рынка на одном соединении); "
+        "0 = авто по числу рынков; 1 = одно соединение на все токены",
+    )
     return p.parse_args(argv)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
+    if not (0.0 <= args.drop_rate <= 1.0):
+        raise SystemExit(f"--drop-rate вне [0, 1]: {args.drop_rate!r}")
+    if args.drop_rate > 0.0 and args.minutes == 0:
+        raise SystemExit(
+            "--drop-rate недоступен в рабочем режиме (--minutes 0): "
+            "это тестовый отрицательный контроль, в демоне запрещён"
+        )
+    if args.conns < 0:
+        raise SystemExit(f"--conns должно быть >= 0 (0 = авто): {args.conns!r}")
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+    _install_fault_watchdog(45.0)
     return asyncio.run(
         run(
             minutes=args.minutes,
             db_path=Path(args.db),
             export_root=Path(args.export_dir),
+            drop_rate=args.drop_rate,
+            n_conns=args.conns,
+            vertical=args.vertical,
         )
     )
 

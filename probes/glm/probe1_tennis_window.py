@@ -13,10 +13,15 @@ Chto schitaem:
      parnye (doubles) isklyuchayutsya.
   2. Otdaet li data-api/trades sdelki po etim rynkam. Syrye stroki otveta
      (po 3 matcha iz fevralya, marta, aprelya).
-  3. Mediana chisla sdelok na match po mesyacam.
+  3. Mediana chisla sdelok na match po (mesyac x tier).
   4. Dolya rynkov, gde est sdelka v predelah 60 minut do gameStartTime.
-  5. Te zhe 4 velichiny za tekuschee okno 2026-05-02 .. 2026-07-31 (sravnenie).
+  5. Te zhe velichiny za tekuschee okno 2026-05-02 .. 2026-07-31 (sravnenie).
   6. Viden li razryv na granice 28 aprelya.
+
+RAZBIYKA PO TIRAM: mediany i doli schitayutsya OTDELNO po ATP, WTA, ATP+WTA
+i ITF. ITF opashivaetsya vyborochno (ITF_SAMPLE_SIZE matchey, fiksirovannoe
+zerno ITF_SAMPLE_SEED), v statistiku ne vhodit -- tolko dlya opisaniya.
+Obschaya mediana po vsem tigram pechataetsya s metkoy СМЕШАННАЯ_НЕ_ИСПОЛЬЗОВАТЬ.
 
 KLYUCHEVOY NYUANS (ubytyy pri razvedke): event.endDate != match date.
 gameStartTime (na urovne RYNKA) -- nastoyaschee vremya matcha. endDate otstaet
@@ -27,10 +32,13 @@ Potokobezopasnyy throttle (deque) ~140 req/10s, ThreadPoolExecutor dlya /trades.
 Vse logi syrye v probes/glm/probe1_*.log. Skript nichego ne chinit.
 
 usage:
-  python probes/glm/probe1_tennis_window.py            # polnyy progion
-  python probes/glm/probe1_tennis_window.py selftest   # samotest
+  python probes/glm/probe1_tennis_window.py                          # oba okna
+  python probes/glm/probe1_tennis_window.py --window current          # tolko tekuschee
+  python probes/glm/probe1_tennis_window.py --window target           # tolko celevoe
+  python probes/glm/probe1_tennis_window.py --window both             # oba (default)
+  python probes/glm/probe1_tennis_window.py selftest                  # samotest
 """
-import json, os, re, sys, time, statistics, threading, collections
+import json, os, re, sys, time, random, statistics, threading, collections
 import urllib.request, urllib.parse, urllib.error
 from datetime import datetime, timezone, timedelta
 from collections import defaultdict
@@ -44,6 +52,8 @@ OFFSET_CAP = 2000
 RATE_WIN_S = 10.0
 RATE_MAX = 140   # pod limit 150/10s s zapasom
 WORKERS = 6
+ITF_SAMPLE_SIZE = 300
+ITF_SAMPLE_SEED = 20260803
 _LOG_LOCK = threading.Lock()
 
 SINGLES_RE = re.compile(r"\d{4}-\d{2}-\d{2}$")
@@ -311,11 +321,98 @@ def pick_samples(singles, months_needed):
     return samples
 
 
+# ─── Aggregation helpers (novyy kod dlya razbivki po tigram) ─────
+
+def median_stats(counts):
+    """Vozvraschaet dict s median, n_markets, n_with_trades, min, max."""
+    if not counts:
+        return {"median": 0, "n_markets": 0, "n_with_trades": 0, "min": 0, "max": 0}
+    return {
+        "median": statistics.median(counts),
+        "n_markets": len(counts),
+        "n_with_trades": sum(1 for c in counts if c > 0),
+        "min": min(counts),
+        "max": max(counts),
+    }
+
+
+def aggregate_trades(per_market_rows):
+    """Gruppirovka n_trades po (month, tier), po tier, ATP+WTA vmeste, i vsyo.
+
+    Klyuch: (month, tier) --chemy schetchiki ne smeshivayutsya po tigram.
+    """
+    by_month_tier = defaultdict(list)     # (mk, tier) -> [n_trades, ...]
+    by_tier = defaultdict(list)           # tier         -> [n_trades, ...]
+    by_month_atp_wta = defaultdict(list)  # mk           -> [n_trades, ...]
+
+    for r in per_market_rows:
+        mk = r["month"]
+        tier = r["tier"]
+        n = r["n_trades"]
+        by_month_tier[(mk, tier)].append(n)
+        by_tier[tier].append(n)
+        if tier in ("ATP", "WTA"):
+            by_month_atp_wta[mk].append(n)
+
+    return {
+        "by_month_tier": by_month_tier,
+        "by_tier": by_tier,
+        "by_month_atp_wta": by_month_atp_wta,
+        "atp_wta_all": by_tier.get("ATP", []) + by_tier.get("WTA", []),
+        "all": [r["n_trades"] for r in per_market_rows],
+    }
+
+
+def aggregate_near_gs(per_market_rows):
+    """Dolya rynkov s predmatchevoy sdelkoy (60 min) po tier i ATP+WTA."""
+    counters = defaultdict(lambda: {"n_near": 0, "n_total": 0})
+    for r in per_market_rows:
+        tier = r["tier"]
+        counters[tier]["n_total"] += 1
+        if r["has_prestart_trade"]:
+            counters[tier]["n_near"] += 1
+        if tier in ("ATP", "WTA"):
+            counters["ATP+WTA"]["n_total"] += 1
+            if r["has_prestart_trade"]:
+                counters["ATP+WTA"]["n_near"] += 1
+        counters["ALL"]["n_total"] += 1
+        if r["has_prestart_trade"]:
+            counters["ALL"]["n_near"] += 1
+    return counters
+
+
+def select_scan_set(singles):
+    """ATP+WTA polnostyu, ITF -- vyborochno (ITF_SAMPLE_SIZE, zerno ITF_SAMPLE_SEED).
+
+    Vozvraschaet (scan_set, itf_total, itf_sampled_n).
+    drugie tery (OTHER) -- polnostyu (redkie).
+    """
+    atp = [s for s in singles if s["tier"] == "ATP"]
+    wta = [s for s in singles if s["tier"] == "WTA"]
+    itf = [s for s in singles if s["tier"] == "ITF"]
+    other = [s for s in singles if s["tier"] == "OTHER"]
+
+    rng = random.Random(ITF_SAMPLE_SEED)
+    if len(itf) > ITF_SAMPLE_SIZE:
+        itf_sample = rng.sample(itf, ITF_SAMPLE_SIZE)
+    else:
+        itf_sample = list(itf)
+
+    scan_set = atp + wta + itf_sample + other
+    return scan_set, len(itf), len(itf_sample)
+
+
+# ─── Scan ────────────────────────────────────────────────────────
+
 def scan_trades_parallel(singles, label_prefix=""):
-    """Parallel skan /trades po vsem rynkam. Vozvraschaet result dict."""
-    per_market = []
-    near_gs = 0
-    trades_counts_by_month = defaultdict(list)
+    """Parallel skan /trades po vsem rynkam.
+
+    Klyuch schetchikov -- para (month, tier), ne month.
+    Vozvraschaet:
+      per_market_rows: list[{slug, tier, month, n_trades, has_prestart_trade}]
+      near_gs:          int (chislo rynkov so sdelkoy 60 min do gameStart)
+      errors:           int
+    """
     errors = 0
     counter = {"done": 0}
     counter_lock = threading.Lock()
@@ -335,7 +432,6 @@ def scan_trades_parallel(singles, label_prefix=""):
         futs = {ex.submit(worker, i, s): i for i, s in enumerate(singles)}
         for fut in as_completed(futs):
             idx, n, err, has_near = fut.result()
-            s = singles[idx]
             results_map[idx] = (n, err, has_near)
             with counter_lock:
                 counter["done"] += 1
@@ -344,17 +440,22 @@ def scan_trades_parallel(singles, label_prefix=""):
                 el = time.time() - t0
                 print("    %s%d/%d | %.1f/s" % (label_prefix, done, len(singles), done / el if el else 0))
 
+    per_market_rows = []
+    near_gs = 0
     for i, s in enumerate(singles):
         n, err, has_near = results_map[i]
         if err:
             errors += 1
-        per_market.append(n)
-        mk = month_key(s["gameStartTime_dt"])
-        trades_counts_by_month[mk].append(n)
         if has_near:
             near_gs += 1
-
-    return per_market, near_gs, trades_counts_by_month, errors
+        per_market_rows.append({
+            "slug": s["slug"],
+            "tier": s["tier"],
+            "month": month_key(s["gameStartTime_dt"]),
+            "n_trades": n,
+            "has_prestart_trade": has_near,
+        })
+    return per_market_rows, near_gs, errors
 
 
 def run_window(label, w_start, w_end):
@@ -406,39 +507,89 @@ def run_window(label, w_start, w_end):
                                "n_trades": n, "raw_first3": [], "error": err})
         raw_samples[mk] = mk_raw
 
-    print("\n[5] Skanirovanie /trades po VSEM %d odinochnym rynkam (workers=%d)..." % (len(singles), WORKERS))
-    per_market, near_gs, trades_counts_by_month, errors = scan_trades_parallel(singles, label_prefix="    ")
+    # ── Shag 5: vybor scan-seta i skanirovanie ──────────────────
+    scan_set, itf_total, itf_sampled = select_scan_set(singles)
+    print("\n[5] Skanirovanie /trades: ATP+WTA polnostyu, ITF vyborochno")
+    print("    ATP=%d  WTA=%d  ITF(vsego)=%d  ITF(vyborka)=%d  drugie=%d  SKANIRUEM=%d" % (
+        sum(1 for s in singles if s["tier"] == "ATP"),
+        sum(1 for s in singles if s["tier"] == "WTA"),
+        itf_total, itf_sampled,
+        sum(1 for s in singles if s["tier"] == "OTHER"),
+        len(scan_set)))
+    print("    ITF zerno=%d, razmer=%d" % (ITF_SAMPLE_SEED, ITF_SAMPLE_SIZE))
+    per_market_rows, near_gs, errors = scan_trades_parallel(scan_set, label_prefix="    ")
 
-    medians = {}
-    print("\n[6] MEDIANA SDELOK NA MATCH po mesyatsam:")
-    for mk in sorted(trades_counts_by_month):
-        counts = trades_counts_by_month[mk]
-        med = statistics.median(counts) if counts else 0
-        nonzero = sum(1 for c in counts if c > 0)
-        medians[mk] = {"median": med, "n_markets": len(counts), "n_with_trades": nonzero,
-                       "min": min(counts) if counts else 0, "max": max(counts) if counts else 0}
-        print("    %s: median=%.1f  markets=%d  with_trades=%d  min=%d  max=%d" % (
-            mk, med, len(counts), nonzero, min(counts) if counts else 0, max(counts) if counts else 0))
+    # Agregaciya
+    agg = aggregate_trades(per_market_rows)
+    near = aggregate_near_gs(per_market_rows)
 
-    share_near = (near_gs / len(singles)) if singles else 0.0
+    # ── Shag 6: mediana po (mesyac x tier) ──────────────────────
+    print("\n[6] MEDIANA SDELOK NA MATCH po (mesyac x tier):")
+    medians_month_tier = {}
+    all_mks = sorted(set(mk for mk, _t in agg["by_month_tier"]))
+    for mk in all_mks:
+        for tier in ("ATP", "WTA", "ITF"):
+            counts = agg["by_month_tier"].get((mk, tier), [])
+            if not counts:
+                continue
+            st = median_stats(counts)
+            suffix = "  ВЫБОРОЧНАЯ n=%d" % ITF_SAMPLE_SIZE if tier == "ITF" and itf_total > itf_sampled else ""
+            print("    %s %s: median=%.1f  markets=%d  with_trades=%d  min=%d  max=%d%s" % (
+                mk, tier, st["median"], st["n_markets"], st["n_with_trades"],
+                st["min"], st["max"], suffix))
+            medians_month_tier["%s|%s" % (mk, tier)] = st
+        # ATP+WTA vmeste dlya etogo mesyaca
+        aw = agg["by_month_atp_wta"].get(mk, [])
+        if aw:
+            st = median_stats(aw)
+            print("    %s ATP+WTA: median=%.1f  markets=%d  with_trades=%d  min=%d  max=%d" % (
+                mk, st["median"], st["n_markets"], st["n_with_trades"], st["min"], st["max"]))
+            medians_month_tier["%s|ATP+WTA" % mk] = st
+
+    # ── Shag 7: dolya predmatchevyh sdelok po tigram ────────────
     print("\n[7] DOLYA rynkov s sdelkoy v predelah 60 min DO gameStartTime:")
-    print("    %d / %d = %.1f%%" % (near_gs, len(singles), share_near * 100))
+    prestart_stats = {}
+    for key in ("ATP", "WTA", "ATP+WTA", "ITF"):
+        c = near.get(key, {"n_near": 0, "n_total": 0})
+        share = (c["n_near"] / c["n_total"]) if c["n_total"] else 0.0
+        suffix = "  ВЫБОРОЧНАЯ n=%d" % ITF_SAMPLE_SIZE if key == "ITF" and itf_total > itf_sampled else ""
+        print("    %s: %d / %d = %.1f%%%s" % (key, c["n_near"], c["n_total"], share * 100, suffix))
+        prestart_stats[key] = {"n_near": c["n_near"], "n_total": c["n_total"], "share": share}
+    c_all = near.get("ALL", {"n_near": 0, "n_total": 0})
+    share_all = (c_all["n_near"] / c_all["n_total"]) if c_all["n_total"] else 0.0
+    print("    ALL (СМЕШАННАЯ_НЕ_ИСПОЛЬЗОВАТЬ): %d / %d = %.1f%%" % (
+        c_all["n_near"], c_all["n_total"], share_all * 100))
+    prestart_stats["ALL_СМЕШАННАЯ"] = {"n_near": c_all["n_near"], "n_total": c_all["n_total"], "share": share_all}
 
-    overall_median = statistics.median(per_market) if per_market else 0
-    print("\n[8] ITOR PO OKNU:")
-    print("    odinochnyh rynkov: %d" % len(singles))
-    print("    mediana sdelok (vse okno): %.1f" % overall_median)
-    print("    dolya s predmatchevoy sdelkoy (60 min): %.1f%%" % (share_near * 100))
+    # ── Shag 8: itogi po oknu, razbito po tigram ────────────────
+    print("\n[8] ITOR PO OKNU (mediany po tigram):")
+    tier_medians = {}
+    for key in ("ATP", "WTA", "ATP+WTA", "ITF"):
+        counts = agg["atp_wta_all"] if key == "ATP+WTA" else agg["by_tier"].get(key, [])
+        st = median_stats(counts)
+        suffix = "  ВЫБОРОЧНАЯ n=%d" % ITF_SAMPLE_SIZE if key == "ITF" and itf_total > itf_sampled else ""
+        print("    %s: median=%.1f  markets=%d  with_trades=%d  min=%d  max=%d%s" % (
+            key, st["median"], st["n_markets"], st["n_with_trades"], st["min"], st["max"], suffix))
+        tier_medians[key] = st
+    overall = median_stats(agg["all"])
+    print("    ALL (СМЕШАННАЯ_НЕ_ИСПОЛЬЗОВАТЬ): median=%.1f  markets=%d  with_trades=%d  min=%d  max=%d" % (
+        overall["median"], overall["n_markets"], overall["n_with_trades"], overall["min"], overall["max"]))
+    tier_medians["ALL_СМЕШАННАЯ"] = overall
     print("    oshibok /trades: %d" % errors)
 
     return {
-        "label": label, "window": [iso(w_start), iso(w_end)],
-        "n_events_fetched": len(events), "n_singles": len(singles),
+        "label": label,
+        "window": [iso(w_start), iso(w_end)],
+        "n_events_fetched": len(events),
+        "n_singles": len(singles),
+        "itf_total": itf_total,
+        "itf_sampled": itf_sampled,
+        "itf_sample_seed": ITF_SAMPLE_SEED,
         "by_month_tier": {mk: dict(v) for mk, v in by.items()},
-        "trades_median_by_month": medians,
-        "overall_median_trades": overall_median,
-        "share_with_prestart_trade_60min": share_near,
-        "n_with_prestart_trade": near_gs,
+        "trades_median_by_month_tier": medians_month_tier,
+        "trades_median_by_tier": tier_medians,
+        "prestart_trade_by_tier": prestart_stats,
+        "per_market_rows": per_market_rows,
         "trade_errors": errors,
         "raw_samples_trades": raw_samples,
     }
@@ -472,6 +623,45 @@ def selftest():
     assert _near([{"timestamp": gst.timestamp() - 1800}], gst)
     assert not _near([{"timestamp": gst.timestamp() - 7200}], gst)
     assert not _near([{"timestamp": gst.timestamp() + 100}], gst)
+
+    # --- Novyy test: schetchiki (month, tier) ne smeshivayutsya ---
+    rows = [
+        {"slug": "atp-a-b-2026-05-01", "tier": "ATP", "month": "2026-05", "n_trades": 10, "has_prestart_trade": True},
+        {"slug": "wta-c-d-2026-05-01", "tier": "WTA", "month": "2026-05", "n_trades": 20, "has_prestart_trade": False},
+        {"slug": "atp-e-f-2026-05-02", "tier": "ATP", "month": "2026-05", "n_trades": 30, "has_prestart_trade": True},
+        {"slug": "wta-g-h-2026-06-01", "tier": "WTA", "month": "2026-06", "n_trades": 40, "has_prestart_trade": False},
+    ]
+    agg = aggregate_trades(rows)
+    # ATP v mae tolko 10 i 30, WTA ne primeshalas
+    assert agg["by_month_tier"][("2026-05", "ATP")] == [10, 30], \
+        "ATP counts smeshalis s WTA: %s" % agg["by_month_tier"][("2026-05", "ATP")]
+    assert agg["by_month_tier"][("2026-05", "WTA")] == [20]
+    # Po tier: ATP = [10,30], WTA = [20,40]
+    assert agg["by_tier"]["ATP"] == [10, 30]
+    assert agg["by_tier"]["WTA"] == [20, 40]
+    # ATP+WTA po mesyacam: may = [10,20,30], iyun = [40]
+    assert agg["by_month_atp_wta"]["2026-05"] == [10, 20, 30]
+    assert agg["by_month_atp_wta"]["2026-06"] == [40]
+    # ATP+WTA vse = ATP + WTA
+    assert sorted(agg["atp_wta_all"]) == [10, 20, 30, 40]
+    # near_gs po tier
+    near = aggregate_near_gs(rows)
+    assert near["ATP"] == {"n_near": 2, "n_total": 2}
+    assert near["WTA"] == {"n_near": 0, "n_total": 2}
+    assert near["ATP+WTA"] == {"n_near": 2, "n_total": 4}
+    assert near["ALL"] == {"n_near": 2, "n_total": 4}
+
+    # ITF vyborka determinirovana i ne prevyshaet ITF_SAMPLE_SIZE
+    fake = [{"tier": "ITF", "slug": "itf-%d-2026-05-01" % i,
+             "gameStartTime_dt": datetime(2026, 5, 1, tzinfo=timezone.utc)} for i in range(500)]
+    _scan, it, isn = select_scan_set(fake)
+    assert it == 500 and isn == ITF_SAMPLE_SIZE, "ITF sample size: %d" % isn
+    # Povtornyy zapusk daet tot zhe nabor (determinirovannost zerna)
+    _scan2, _, _ = select_scan_set(fake)
+    s1 = sorted(s["slug"] for s in _scan if s["tier"] == "ITF")
+    s2 = sorted(s["slug"] for s in _scan2 if s["tier"] == "ITF")
+    assert s1 == s2, "ITF vyborka nedeterminirovana"
+
     # throttle thread test
     errs = []
     def hammer():
@@ -488,37 +678,68 @@ def selftest():
 
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] == "selftest":
+    args = sys.argv[1:]
+    if args and args[0] == "selftest":
         selftest()
         return
+
+    # Razbor --window {target|current|both}
+    window_mode = "both"
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a == "--window":
+            if i + 1 >= len(args):
+                print("ERROR: --window trebuet znachenie (target|current|both)")
+                sys.exit(1)
+            window_mode = args[i + 1]
+            i += 2
+        elif a.startswith("--window="):
+            window_mode = a.split("=", 1)[1]
+            i += 1
+        else:
+            print("ERROR: neizvestnyy argument: %s" % a)
+            sys.exit(1)
+
+    if window_mode not in ("target", "current", "both"):
+        print("ERROR: --window=%s -- dopustimo: target|current|both" % window_mode)
+        sys.exit(1)
+
     open(RAWLOG, "w", encoding="utf-8").close()
     print("GLM PROBA 1 -- tennis window probe (parallel)")
     print("GAMMA:", GAMMA, "| DATA:", DATA, "| workers:", WORKERS, "| rate:", RATE_MAX, "/10s")
     print("Log:", RAWLOG)
+    print("Window:", window_mode)
 
-    target = run_window("CELEVOE (fevral-aprel 2026)", *WINDOW_TARGET)
-    current = run_window("TEKUSCHEE (may-iyul 2026)", *WINDOW_CURRENT)
+    summary = {"generated": iso(datetime.now(timezone.utc)), "window_mode": window_mode}
 
-    # Granica 28.04
-    print("\n" + "=" * 72)
-    print("PROVERKA GRANICY 28.04.2026 (CLOB V2 start)")
-    print("=" * 72)
-    by = target.get("by_month_tier", {})
-    for mk in sorted(by):
-        print("    %s: total=%d" % (mk, by[mk].get("TOTAL", 0)))
-    print("  Granica CLOB V2 = 2026-04-28. Sravnite median(february) vs median(may).")
+    if window_mode in ("target", "both"):
+        summary["target"] = run_window("CELEVOE (fevral-aprel 2026)", *WINDOW_TARGET)
+    if window_mode in ("current", "both"):
+        summary["current"] = run_window("TEKUSCHEE (may-iyul 2026)", *WINDOW_CURRENT)
 
-    print("\n" + "=" * 72)
-    print("SRAVNENIE OKON")
-    print("=" * 72)
-    print("  CELEVOE  (feb-apr): rynkov=%d  median=%.1f  dolya_predstart=%.1f%%" % (
-        target["n_singles"], target["overall_median_trades"],
-        target["share_with_prestart_trade_60min"] * 100))
-    print("  TEKUSCHEE (may-jul): rynkov=%d  median=%.1f  dolya_predstart=%.1f%%" % (
-        current["n_singles"], current["overall_median_trades"],
-        current["share_with_prestart_trade_60min"] * 100))
+    if window_mode == "both":
+        target = summary["target"]
+        current = summary["current"]
+        # Granica 28.04
+        print("\n" + "=" * 72)
+        print("PROVERKA GRANICY 28.04.2026 (CLOB V2 start)")
+        print("=" * 72)
+        by = target.get("by_month_tier", {})
+        for mk in sorted(by):
+            print("    %s: total=%d" % (mk, by[mk].get("TOTAL", 0)))
+        print("  Granica CLOB V2 = 2026-04-28. Sravnite median(february) vs median(may).")
 
-    summary = {"generated": iso(datetime.now(timezone.utc)), "target": target, "current": current}
+        print("\n" + "=" * 72)
+        print("SRAVNENIE OKON (mediany po tigram)")
+        print("=" * 72)
+        for tier_key in ("ATP", "WTA", "ATP+WTA", "ITF"):
+            tm = target.get("trades_median_by_tier", {}).get(tier_key, {})
+            cm = current.get("trades_median_by_tier", {}).get(tier_key, {})
+            print("  %-8s celevoe: median=%.1f (n=%d)  tekuschee: median=%.1f (n=%d)" % (
+                tier_key, tm.get("median", 0), tm.get("n_markets", 0),
+                cm.get("median", 0), cm.get("n_markets", 0)))
+
     with open(SUMMARY, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, default=str, ensure_ascii=False)
     print("\nItog ->", SUMMARY)
