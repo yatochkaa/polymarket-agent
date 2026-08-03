@@ -1,0 +1,113 @@
+﻿GLM PROBA 1 -- tennis window probe (parallel)
+GAMMA: https://gamma-api.polymarket.com | DATA: https://data-api.polymarket.com | workers: 6 | rate: 140 /10s
+Log: C:\Users\awf\Desktop\test\probes\glm\probe1_raw_api.log
+Window: current
+
+========================================================================
+OKNO: TEKUSCHEE (may-iyul 2026)  [2026-05-02T00:00:00Z .. 2026-07-31T00:00:00Z]
+========================================================================
+[1] Zagruzka /events?tag_slug=tennis endDate [2026-03-28T00:00:00Z .. 2026-09-04T00:00:00Z]...
+    events closed=18545 open=186 total=18731 (cap_hits=0)
+[2] Izvlechenie odinochnyh matchevyh rynkov s gameStartTime v okne...
+    odinochnyh rynkov v okne: 14141
+
+[3] SCHET PO MESYATSAM x TIRAM:
+    month       ATP    WTA    ITF  OTHER    TOTAL
+    2026-05    1033    568   1737      0     3338
+    2026-06    1134    696   3317      0     5147
+    2026-07    1155    654   3847      0     5656
+
+[4] PROB /trades: po 3 matcha na mesyac, SYRYE stroki:
+  --- 2026-05: vybrano 3 primerov ---
+    1. slug=atp-wong-su-2026-05-01 gst=2026-05-02T03:00:00+00:00 trades=1177 
+      --- syrye stroki (pervye 3) ---
+      {"proxyWallet": "0x7cb6b8ed713dbb9bb1315b86ed05b666fafc96d1", "side": "SELL", "asset": "77255190488062232676355785814482195579941136478868364638323438359600351395840", "conditionId": "0x498e2c297700d5224235c94e2c8d40ac8638462cecebee3b5b764d51a005c320", "size": 84.45, "price": 0.999, "timestamp": 1777705506, "title": "Jiujiang: Coleman Wong vs Fajing Sun", "slug": "atp-wong-su-2026-05-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg", "eventSlug": "atp-wo
+      {"proxyWallet": "0x473ebe02307779c6e3ce9b2a9efa767a773fc0f6", "side": "SELL", "asset": "77255190488062232676355785814482195579941136478868364638323438359600351395840", "conditionId": "0x498e2c297700d5224235c94e2c8d40ac8638462cecebee3b5b764d51a005c320", "size": 1002.21, "price": 0.999, "timestamp": 1777704536, "title": "Jiujiang: Coleman Wong vs Fajing Sun", "slug": "atp-wong-su-2026-05-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg", "eventSlug": "atp-
+      {"proxyWallet": "0x3aa799c24535c70c6168c2017011845f84e7303d", "side": "SELL", "asset": "77255190488062232676355785814482195579941136478868364638323438359600351395840", "conditionId": "0x498e2c297700d5224235c94e2c8d40ac8638462cecebee3b5b764d51a005c320", "size": 10, "price": 0.999, "timestamp": 1777703756, "title": "Jiujiang: Coleman Wong vs Fajing Sun", "slug": "atp-wong-su-2026-05-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg", "eventSlug": "atp-wong-
+    2. slug=atp-bolt-walton-2026-05-01 gst=2026-05-02T03:00:00+00:00 trades=2327 
+      --- syrye stroki (pervye 3) ---
+      {"proxyWallet": "0xb0a015956d3d27ca3004c6ce2efb0fd7e0b87d2e", "side": "SELL", "asset": "62262804581203170085074507190765579612572440869715002997567244904743202765087", "conditionId": "0x9d819ff2339e59723a6e4ef69bd794b8e87218087949b0e77cda94219058ab28", "size": 15.87, "price": 0.999, "timestamp": 1777709818, "title": "Jiujiang: Alex Bolt vs Adam Walton", "slug": "atp-bolt-walton-2026-05-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg", "eventSlug": "atp-
+      {"proxyWallet": "0x14798f8a2038b2b4a8aab2835256de92709cb778", "side": "SELL", "asset": "62262804581203170085074507190765579612572440869715002997567244904743202765087", "conditionId": "0x9d819ff2339e59723a6e4ef69bd794b8e87218087949b0e77cda94219058ab28", "size": 7.93, "price": 0.999, "timestamp": 1777709156, "title": "Jiujiang: Alex Bolt vs Adam Walton", "slug": "atp-bolt-walton-2026-05-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg", "eventSlug": "atp-b
+      {"proxyWallet": "0x729afcef919d5f2b39549141eae3599f7ebd1e51", "side": "SELL", "asset": "62262804581203170085074507190765579612572440869715002997567244904743202765087", "conditionId": "0x9d819ff2339e59723a6e4ef69bd794b8e87218087949b0e77cda94219058ab28", "size": 32.25, "price": 0.999, "timestamp": 1777708290, "title": "Jiujiang: Alex Bolt vs Adam Walton", "slug": "atp-bolt-walton-2026-05-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg", "eventSlug": "atp-
+    3. slug=wta-erjavec-wan-2026-05-02 gst=2026-05-02T05:00:00+00:00 trades=1577 
+      --- syrye stroki (pervye 3) ---
+      {"proxyWallet": "0x54166e9fc10b73a6f6838684b98f7eb695a043ca", "side": "SELL", "asset": "65171489775613604041198371850717699415545633213472175673905482713317941396542", "conditionId": "0x7ef960d267238ac11401af74cb224b55aae6ec235d776ff0beacd4ed0e44e2f9", "size": 4.87, "price": 0.999, "timestamp": 1777715326, "title": "Huzhou: Veronika Erjavec vs Xiyu Wang", "slug": "wta-erjavec-wan-2026-05-02", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png", "eventSlug": "wt
+      {"proxyWallet": "0x299632478989dd858d3bbeae87c412dd3dd57571", "side": "SELL", "asset": "65171489775613604041198371850717699415545633213472175673905482713317941396542", "conditionId": "0x7ef960d267238ac11401af74cb224b55aae6ec235d776ff0beacd4ed0e44e2f9", "size": 7.26, "price": 0.999, "timestamp": 1777714478, "title": "Huzhou: Veronika Erjavec vs Xiyu Wang", "slug": "wta-erjavec-wan-2026-05-02", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png", "eventSlug": "wt
+      {"proxyWallet": "0xcb7b050f7627951f4f0c6753caab5e8969fc5d6d", "side": "SELL", "asset": "65171489775613604041198371850717699415545633213472175673905482713317941396542", "conditionId": "0x7ef960d267238ac11401af74cb224b55aae6ec235d776ff0beacd4ed0e44e2f9", "size": 1.23, "price": 0.999, "timestamp": 1777713332, "title": "Huzhou: Veronika Erjavec vs Xiyu Wang", "slug": "wta-erjavec-wan-2026-05-02", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png", "eventSlug": "wt
+  --- 2026-06: vybrano 3 primerov ---
+    1. slug=atp-gigante-opelka-2026-06-01 gst=2026-06-01T08:00:00+00:00 trades=17 
+      --- syrye stroki (pervye 3) ---
+      {"proxyWallet": "0x522f2ab5bc44e574d8e27df929d21d6f71a71164", "side": "BUY", "asset": "45941679541850708679684435685298712301113243121067704293499082941688575611807", "conditionId": "0xb93c71ba230528e49e6926377fd3adfa04f668cd3e00f67f05ce63578e385751", "size": 39.215685, "price": 0.5099999911, "timestamp": 1780290143, "title": "Perugia: Matteo Gigante vs Reilly Opelka", "slug": "atp-gigante-opelka-2026-06-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+      {"proxyWallet": "0x43839b041c8da4de0f3ed8d1238714c4f8b2dbdd", "side": "BUY", "asset": "45941679541850708679684435685298712301113243121067704293499082941688575611807", "conditionId": "0xb93c71ba230528e49e6926377fd3adfa04f668cd3e00f67f05ce63578e385751", "size": 1.960783, "price": 0.5099998317, "timestamp": 1780289957, "title": "Perugia: Matteo Gigante vs Reilly Opelka", "slug": "atp-gigante-opelka-2026-06-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg", 
+      {"proxyWallet": "0xa1d7cbcb03c4ff29f9e0019a516d69f7eadba311", "side": "BUY", "asset": "45941679541850708679684435685298712301113243121067704293499082941688575611807", "conditionId": "0xb93c71ba230528e49e6926377fd3adfa04f668cd3e00f67f05ce63578e385751", "size": 5.69, "price": 0.5, "timestamp": 1780288930, "title": "Perugia: Matteo Gigante vs Reilly Opelka", "slug": "atp-gigante-opelka-2026-06-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg", "eventSlug": 
+    2. slug=atp-cobolli-svajda-2026-05-31 gst=2026-06-01T09:10:00+00:00 trades=3659 
+      --- syrye stroki (pervye 3) ---
+      {"proxyWallet": "0x3f7c7b528f8b79d21637f89193889490f644171b", "side": "SELL", "asset": "56933497646301153692754506296022134617770914736654468210923404830437076839395", "conditionId": "0x7b9b9d8348362d4cd7784255e0fe71a8680c66d9e6c2a85e57bbd6b53e188425", "size": 22.13, "price": 0.999, "timestamp": 1780331896, "title": "Roland Garros ATP: Flavio Cobolli vs Zachary Svajda", "slug": "atp-cobolli-svajda-2026-05-31", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg"
+      {"proxyWallet": "0x5d92479e33a7e19b8d4195ca5330a9ddaba948e4", "side": "SELL", "asset": "56933497646301153692754506296022134617770914736654468210923404830437076839395", "conditionId": "0x7b9b9d8348362d4cd7784255e0fe71a8680c66d9e6c2a85e57bbd6b53e188425", "size": 34.09, "price": 0.999, "timestamp": 1780331285, "title": "Roland Garros ATP: Flavio Cobolli vs Zachary Svajda", "slug": "atp-cobolli-svajda-2026-05-31", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg"
+      {"proxyWallet": "0xf7c3b6cb4badc158f44cef43364701d3a393eac2", "side": "SELL", "asset": "56933497646301153692754506296022134617770914736654468210923404830437076839395", "conditionId": "0x7b9b9d8348362d4cd7784255e0fe71a8680c66d9e6c2a85e57bbd6b53e188425", "size": 23.54, "price": 0.999, "timestamp": 1780330820, "title": "Roland Garros ATP: Flavio Cobolli vs Zachary Svajda", "slug": "atp-cobolli-svajda-2026-05-31", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg"
+    3. slug=atp-miguel-kawanis-2026-05-31 gst=2026-06-01T09:10:00+00:00 trades=1 
+      --- syrye stroki (pervye 3) ---
+      {"proxyWallet": "0xaa06e5aa7c8b61c537f0acc6f2c2aabcb44f4e52", "side": "BUY", "asset": "58825945230919928249326483157336657077567906183052814468156860898499365319634", "conditionId": "0x6f51232c17cf776835801fdaf62c9c4ffa02d10148e94a45d79ebc9072ec84cf", "size": 109.99, "price": 0.9895454132, "timestamp": 1780308723, "title": "Roland Garros Juniors, Boys: Luis Guto Miguel vs Hyu Kawanishi", "slug": "atp-miguel-kawanis-2026-05-31", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-to
+  --- 2026-07: vybrano 3 primerov ---
+    1. slug=itf-dellave-tange-2026-07-01 gst=2026-07-01T01:00:00+00:00 trades=15 
+      --- syrye stroki (pervye 3) ---
+      {"proxyWallet": "0xa41e921dae0934071c3e51fe2d394da315670a1c", "side": "BUY", "asset": "78419429090234209755506123532723261557143686574052831322855199341393029842598", "conditionId": "0x9191be3599f662ef53287cb72799ed1afb620afbd532a0535bac525b24b36d31", "size": 28.99, "price": 0.999, "timestamp": 1782872828, "title": "ITF Tokyo: Matthew Dellavedova vs Saki Tange", "slug": "itf-dellave-tange-2026-07-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png", "eventSlug":
+      {"proxyWallet": "0xa41e921dae0934071c3e51fe2d394da315670a1c", "side": "BUY", "asset": "78419429090234209755506123532723261557143686574052831322855199341393029842598", "conditionId": "0x9191be3599f662ef53287cb72799ed1afb620afbd532a0535bac525b24b36d31", "size": 1.001, "price": 0.999, "timestamp": 1782871411, "title": "ITF Tokyo: Matthew Dellavedova vs Saki Tange", "slug": "itf-dellave-tange-2026-07-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png", "eventSlug":
+      {"proxyWallet": "0xb52bed5692f410333fe07d5fedd575cac0b89646", "side": "BUY", "asset": "78419429090234209755506123532723261557143686574052831322855199341393029842598", "conditionId": "0x9191be3599f662ef53287cb72799ed1afb620afbd532a0535bac525b24b36d31", "size": 6.31, "price": 0.95, "timestamp": 1782868867, "title": "ITF Tokyo: Matthew Dellavedova vs Saki Tange", "slug": "itf-dellave-tange-2026-07-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png", "eventSlug": "
+    2. slug=itf-honda-fukuda-2026-07-01 gst=2026-07-01T01:00:00+00:00 trades=27 
+      --- syrye stroki (pervye 3) ---
+      {"proxyWallet": "0xa236e6ee37770500d4a826656e5cf5e141b68861", "side": "SELL", "asset": "55605749825421864151001509455912631037464975653900783134751295567853616305569", "conditionId": "0x1027eed91593d8d94be3ecbe2e608db0bc2a34e3d13b99cffe82ef3ad2551347", "size": 5.1, "price": 0.99, "timestamp": 1782878035, "title": "ITF Tokyo: Naoya Honda vs Sora Fukuda", "slug": "itf-honda-fukuda-2026-07-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png", "eventSlug": "itf-hond
+      {"proxyWallet": "0xa236e6ee37770500d4a826656e5cf5e141b68861", "side": "BUY", "asset": "55605749825421864151001509455912631037464975653900783134751295567853616305569", "conditionId": "0x1027eed91593d8d94be3ecbe2e608db0bc2a34e3d13b99cffe82ef3ad2551347", "size": 5.1, "price": 0.94, "timestamp": 1782877817, "title": "ITF Tokyo: Naoya Honda vs Sora Fukuda", "slug": "itf-honda-fukuda-2026-07-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png", "eventSlug": "itf-honda
+      {"proxyWallet": "0xcf73e77b425de23de3731c1029ea7fccba7ef42a", "side": "BUY", "asset": "55605749825421864151001509455912631037464975653900783134751295567853616305569", "conditionId": "0x1027eed91593d8d94be3ecbe2e608db0bc2a34e3d13b99cffe82ef3ad2551347", "size": 2.5, "price": 0.5, "timestamp": 1782875786, "title": "ITF Tokyo: Naoya Honda vs Sora Fukuda", "slug": "itf-honda-fukuda-2026-07-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png", "eventSlug": "itf-honda-
+    3. slug=itf-nakaga-tanuma-2026-07-01 gst=2026-07-01T01:00:00+00:00 trades=252 
+      --- syrye stroki (pervye 3) ---
+      {"proxyWallet": "0x14e72e19ea2f6e2be41504dd3268184ebe5fa32c", "side": "SELL", "asset": "15431994005262173196859618385290082537098813404609668345754671219553083350721", "conditionId": "0x38b2303d798a08ca421d2d878c9b129228ed12a255152e7acf0cbeb14f7f9418", "size": 28, "price": 0.999, "timestamp": 1782874445, "title": "ITF Tokyo: Naoki Nakagawa vs Ryota Tanuma", "slug": "itf-nakaga-tanuma-2026-07-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png", "eventSlug": "itf
+      {"proxyWallet": "0x55371285a2472d815618326da1347fd7e1836993", "side": "SELL", "asset": "15431994005262173196859618385290082537098813404609668345754671219553083350721", "conditionId": "0x38b2303d798a08ca421d2d878c9b129228ed12a255152e7acf0cbeb14f7f9418", "size": 1.44, "price": 0.999, "timestamp": 1782873731, "title": "ITF Tokyo: Naoki Nakagawa vs Ryota Tanuma", "slug": "itf-nakaga-tanuma-2026-07-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png", "eventSlug": "i
+      {"proxyWallet": "0x55371285a2472d815618326da1347fd7e1836993", "side": "SELL", "asset": "15431994005262173196859618385290082537098813404609668345754671219553083350721", "conditionId": "0x38b2303d798a08ca421d2d878c9b129228ed12a255152e7acf0cbeb14f7f9418", "size": 1.4, "price": 0.999, "timestamp": 1782873730, "title": "ITF Tokyo: Naoki Nakagawa vs Ryota Tanuma", "slug": "itf-nakaga-tanuma-2026-07-01", "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png", "eventSlug": "it
+
+[5] Skanirovanie /trades: ATP+WTA polnostyu, ITF vyborochno
+    ATP=3322  WTA=1918  ITF(vsego)=8901  ITF(vyborka)=300  drugie=0  SKANIRUEM=5540
+    ITF zerno=20260803, razmer=300
+        500/5540 | 1.7/s
+        1000/5540 | 1.6/s
+        1500/5540 | 1.8/s
+        2000/5540 | 1.9/s
+        2500/5540 | 2.0/s
+        3000/5540 | 2.0/s
+        3500/5540 | 2.1/s
+        4000/5540 | 2.1/s
+        4500/5540 | 2.1/s
+        5000/5540 | 2.1/s
+        5500/5540 | 2.2/s
+
+[6] MEDIANA SDELOK NA MATCH po (mesyac x tier):
+    2026-05 ATP: median=978.0  markets=1033  with_trades=1033  min=2  max=10500
+    2026-05 WTA: median=948.5  markets=568  with_trades=568  min=2  max=9174
+    2026-05 ITF: median=18.0  markets=67  with_trades=66  min=0  max=177  ╨Т╨л╨С╨Ю╨а╨Ю╨з╨Э╨Р╨п n=300
+    2026-05 ATP+WTA: median=969.0  markets=1601  with_trades=1601  min=2  max=10500
+    2026-06 ATP: median=630.0  markets=1134  with_trades=1130  min=0  max=10500
+    2026-06 WTA: median=687.5  markets=696  with_trades=685  min=0  max=7199
+    2026-06 ITF: median=40.5  markets=104  with_trades=104  min=2  max=523  ╨Т╨л╨С╨Ю╨а╨Ю╨з╨Э╨Р╨п n=300
+    2026-06 ATP+WTA: median=645.0  markets=1830  with_trades=1815  min=0  max=10500
+    2026-07 ATP: median=654.0  markets=1155  with_trades=1125  min=0  max=9690
+    2026-07 WTA: median=631.0  markets=654  with_trades=614  min=0  max=6536
+    2026-07 ITF: median=74.0  markets=129  with_trades=129  min=4  max=455  ╨Т╨л╨С╨Ю╨а╨Ю╨з╨Э╨Р╨п n=300
+    2026-07 ATP+WTA: median=651.0  markets=1809  with_trades=1739  min=0  max=9690
+
+[7] DOLYA rynkov s sdelkoy v predelah 60 min DO gameStartTime:
+    ATP: 3107 / 3322 = 93.5%
+    WTA: 1756 / 1918 = 91.6%
+    ATP+WTA: 4863 / 5240 = 92.8%
+    ITF: 174 / 300 = 58.0%  ╨Т╨л╨С╨Ю╨а╨Ю╨з╨Э╨Р╨п n=300
+    ALL (╨б╨Ь╨Х╨и╨Р╨Э╨Э╨Р╨п_╨Э╨Х_╨Ш╨б╨Я╨Ю╨Ы╨м╨Ч╨Ю╨Т╨Р╨в╨м): 5037 / 5540 = 90.9%
+
+[8] ITOR PO OKNU (mediany po tigram):
+    ATP: median=719.0  markets=3322  with_trades=3288  min=0  max=10500
+    WTA: median=746.5  markets=1918  with_trades=1867  min=0  max=9174
+    ATP+WTA: median=726.5  markets=5240  with_trades=5155  min=0  max=10500
+    ITF: median=43.5  markets=300  with_trades=299  min=0  max=523  ╨Т╨л╨С╨Ю╨а╨Ю╨з╨Э╨Р╨п n=300
+    ALL (╨б╨Ь╨Х╨и╨Р╨Э╨Э╨Р╨п_╨Э╨Х_╨Ш╨б╨Я╨Ю╨Ы╨м╨Ч╨Ю╨Т╨Р╨в╨м): median=683.5  markets=5540  with_trades=5454  min=0  max=10500
+    oshibok /trades: 20
+
+Itog -> C:\Users\awf\Desktop\test\probes\glm\probe1_summary.json
+Syroy log -> C:\Users\awf\Desktop\test\probes\glm\probe1_raw_api.log

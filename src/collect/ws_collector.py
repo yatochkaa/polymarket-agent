@@ -1043,6 +1043,8 @@ async def _resubscribe(
     n_conns: int = 1,
     partition: int = 0,
     vertical: str = "crypto",
+    fixed_tokens: Sequence[str] | None = None,
+    fixed_slugs: dict[str, str] | None = None,
 ) -> bool:
     """Периодический re-discovery: новые токены -> markets_tracked + подписка.
 
@@ -1052,9 +1054,17 @@ async def _resubscribe(
     При мультисоединении (n_conns > 1) соединение подписывается ТОЛЬКО на
     свои токены (разбиение ПО РЫНКАМ через _partition_market): один рынок
     (оба его токена) ровно на одном соединении.
+
+    fixed_tokens/fixed_slugs — фиксированный набор вместо discovery
+    (приёмка Задачи 2: оба прогона на одном наборе рынков). Новые рынки
+    за пределами фиксированного набора НЕ добавляются.
     """
     try:
-        tokens, slugs = await asyncio.to_thread(_discover_with_client, vertical)
+        if fixed_tokens is not None:
+            tokens = list(fixed_tokens)
+            slugs = dict(fixed_slugs or {})
+        else:
+            tokens, slugs = await asyncio.to_thread(_discover_with_client, vertical)
     except Exception as exc:  # noqa: BLE001
         log.warning("re-discovery не удался: %r", exc)
         return False
@@ -1098,6 +1108,8 @@ async def _run_connection(
     n_conns: int = 1,
     partition: int = 0,
     vertical: str = "crypto",
+    fixed_tokens: Sequence[str] | None = None,
+    fixed_slugs: dict[str, str] | None = None,
 ) -> None:
     """Одна стабильная WS-сессия: подключение, приём, ротация, экспорт.
     Переподключение с экспоненциальной задержкой внутри. Выход по deadline."""
@@ -1157,7 +1169,8 @@ async def _run_connection(
                         last_recheck = now
                         if await _resubscribe(
                             handler, collector, n_conns=n_conns, partition=partition,
-                            vertical=vertical,
+                            vertical=vertical, fixed_tokens=fixed_tokens,
+                            fixed_slugs=fixed_slugs,
                         ):
                             await ws.send(
                                 json.dumps({"type": "market", "assets_ids": handler.tokens})
@@ -1201,6 +1214,8 @@ async def run(
     drop_rate: float = 0.0,
     n_conns: int = 1,
     vertical: str = "crypto",
+    fixed_tokens: Sequence[str] | None = None,
+    fixed_slugs: dict[str, str] | None = None,
 ) -> int:
     """Основной цикл: сессия, discovery, приём, гэпы, экспорт.
 
@@ -1208,6 +1223,11 @@ async def run(
     (оба токена одного рынка на одном соединении), не по токенам.
     n_conns == 0 — авто: число соединений = ceil(число рынков /
     MARKETS_PER_CONN), минимум 1 (потолок 50 токенов на соединение).
+
+    fixed_tokens/fixed_slugs — фиксированный набор рынков вместо discovery
+    (приёмка Задачи 2: два прогона подряд на ОДНОМ наборе рынков — эталон
+    односоединённый, затем многосоединённый). Re-discovery при фиксированном
+    наборе использует тот же набор и не добавляет новых рынков.
     """
     if vertical not in VALID_VERTICALS:
         raise ValueError(
@@ -1237,7 +1257,11 @@ async def run(
     collector = Collector(writer=writer, now_ms=started_ms, drop_rate=drop_rate)
 
     with httpx.Client(base_url=GAMMA_URL, timeout=30.0) as gc:
-        tokens, slugs = _discover(vertical, gc)
+        if fixed_tokens is not None:
+            tokens = list(fixed_tokens)
+            slugs = dict(fixed_slugs or {})
+        else:
+            tokens, slugs = _discover(vertical, gc)
     if n_conns == 0:
         n_markets = len({slugs.get(t, t) for t in tokens})
         n_conns = max(1, (n_markets + MARKETS_PER_CONN - 1) // MARKETS_PER_CONN)
@@ -1275,6 +1299,8 @@ async def run(
                     n_conns=n_conns,
                     partition=i,
                     vertical=vertical,
+                    fixed_tokens=fixed_tokens,
+                    fixed_slugs=fixed_slugs,
                 )
                 for i, part in enumerate(parts)
             ]
@@ -1283,7 +1309,8 @@ async def run(
             handler = WSHandler(collector, tokens=tokens, market_slugs=slugs)
             await _run_connection(
                 handler, collector, deadline=deadline, export_root=export_root,
-                vertical=vertical,
+                vertical=vertical, fixed_tokens=fixed_tokens,
+                fixed_slugs=fixed_slugs,
             )
     except KeyboardInterrupt:
         exit_reason = "user_stop"

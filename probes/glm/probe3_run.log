@@ -1,0 +1,2525 @@
+﻿========================================================================
+GLM PROBA 3 -- polya matchevyh sobytiy i poisk klyucha klastrizacii
+GAMMA: https://gamma-api.polymarket.com
+Raw API log: C:\Users\awf\Desktop\test\probes\glm\probe3_raw_api.log
+========================================================================
+
+[1] Skanirovanie /events?tag_slug=tennis v shirokom okne...
+    Diapazon 2026-01-25T00:00:00Z..2026-03-01T00:00:00Z closed=True: sobytiy=1492 | ATP=20 WTA=20 ITF=0 OTHER=0
+    Diapazon 2026-06-01T00:00:00Z..2026-08-15T00:00:00Z closed=True: sobytiy=14040 | ATP=20 WTA=20 ITF=20 OTHER=0
+    Skanirovanie zajalo 286.8 s
+
+[3] SCHET:
+    ATP: 20 sobytiy
+    WTA: 20 sobytiy
+    ITF: 20 sobytiy
+    OTHER: 0 sobytiy
+    Turnirov s >=2 matchami: 366
+
+[4] VYBOR PREDSTAVITELEY:
+    ATP: Australian Open Men's: Justin Engel vs George Loffhagen | market_slug=atp-engel-loffhag-2026-01-11
+    WTA: Australian Open Women's: Tina Smith vs Cadence Brace | market_slug=wta-smith-brace-2026-01-11
+    ITF: ITF Kayseri: Alana Subasic vs Irem Kurt | market_slug=itf-subasic-kurt-2026-05-25
+
+########################################################################
+# DAMP SOBYTIYA: ATP
+########################################################################
+
+------------------------------------------------------------------------
+POLYA SOBYTIYA (event) (46 poley)
+------------------------------------------------------------------------
+  active = true
+  archived = false
+  automaticallyActive = true
+  automaticallyResolved = true
+  closed = true
+  closedTime = "2026-01-12T03:31:02Z"
+  commentCount = 0
+  createdAt = "2026-01-11T17:00:16.15105Z"
+  creationDate = "2026-01-11T23:00:00Z"
+  cyom = false
+  deploying = false
+  description = "This market refers on the tennis match between Justin Engel and George Loffhagen in the Australian Open, Qualification ATP, scheduled for January 11 at 6:00PM ET.\n\nThis market will resolve to 'Engel' if Justin Engel advances against George Loffhagen.\n\nThis market will resolve to 'Loffhagen' if George Loffhagen advances against Justin Engel.\n\nIf the match is canceled (not played at all), ends in a tie, or is delayed beyond 7 days from the scheduled date without a winner determined, this market will resolve to 50-50.\n\nIf the match begins but is not completed, and one player advances due to the opponent's retirement, default, or disqualification, this market will resolve to the player who advances.\n\nIf the match ends in a walkover (player withdraws before the start and the other advances automatically), this market will resolve to 50-50.\n\nThe primary resolution source will be official information from the Australian Open. A consensus of credible reporting may also be used."
+  enableNegRisk = false
+  enableOrderBook = true
+  endDate = "2026-01-25T23:00:00Z"
+  eventDate = "2026-01-11"
+  featured = false
+  gameId = 5132205
+  icon = "https://polymarket-upload.s3.us-east-2.amazonaws.com/australian-open-f3747f3ad1.png"
+  id = "157848"
+  image = "https://polymarket-upload.s3.us-east-2.amazonaws.com/australian-open-f3747f3ad1.png"
+  markets:
+    [
+      {
+        "id": "1160557",
+        "question": "Australian Open Men's: Justin Engel vs George Loffhagen",
+        "conditionId": "0x5df94855bf7b71329e2bf86fa843268d794c4a99e67f0d818b74ef3e9c9c16f5",
+        "slug": "atp-engel-loffhag-2026-01-11",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "startDate": "2026-01-11T17:10:18.118551Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/australian-open-f3747f3ad1.png",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/australian-open-f3747f3ad1.png",
+        "description": "This market refers on the tennis match between Justin Engel and George Loffhagen in the Australian Open, Qualification ATP, scheduled for January 11 at 6:00PM ET.\n\nThis market will resolve to 'Engel' if Justin Engel advances against George Loffhagen.\n\nThis market will resolve to 'Loffhagen' if George Loffhagen advances against Justin Engel.\n\nIf the match is canceled (not played at all), ends in a tie, or is delayed beyond 7 days from the scheduled date without a winner determined, this market will resolve to 50-50.\n\nIf the match begins but is not completed, and one player advances due to the opponent's retirement, default, or disqualification, this market will resolve to the player who advances.\n\nIf the match ends in a walkover (player withdraws before the start and the other advances automatically), this market will resolve to 50-50.\n\nThe primary resolution source will be official information from the Australian Open. A consensus of credible reporting may also be used.",
+        "outcomes": "[\"Engel\", \"Loffhagen\"]",
+        "outcomePrices": "[\"0\", \"1\"]",
+        "volume": "17401.363592",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T17:00:16.28784Z",
+        "updatedAt": "2026-01-13T08:21:16.667277Z",
+        "closedTime": "2026-01-12 03:26:06+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemThreshold": "0",
+        "questionID": "0x1256e051531c4fe9c524a48d44da7e3060acb247f1b118413d0b5e1054e547af",
+        "umaEndDate": "2026-01-12T03:26:06Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 17401.363592,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "volume1wk": 17401.363592000005,
+        "volume1mo": 17401.363592000005,
+        "volume1yr": 17401.363592000005,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"40025806199860347526118143314827465231170745642512154421317098318571692832448\", \"51382034720489736025848180275979291269109754293010195641404268168443326954588\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volume1wkClob": 17401.363592000005,
+        "volume1moClob": 17401.363592000005,
+        "volume1yrClob": 17401.363592000005,
+        "volumeClob": 17401.363592,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T17:09:56Z",
+        "cyom": false,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "oneHourPriceChange": -0.004,
+        "lastTradePrice": 0.002,
+        "bestAsk": 0.001,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "moneyline",
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T17:00:36.143651Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162100",
+        "question": "Engel vs. Loffhagen: Total Sets O/U 2.5",
+        "conditionId": "0x44c7eb73c7352e368d7538e53a1beffacdb882e1d867430e2cc289ad436c5de6",
+        "slug": "atp-engel-loffhag-2026-01-11-set-totals-2pt5",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "liquidity": "0",
+        "startDate": "2026-01-11T18:27:05.79906Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "description": "This market refers to the tennis match between Justin Engel and George Loffhagen in the Australian Open, Qualification ATP, scheduled for January 11 2026.\nThis market will resolve to \"Over\" if the total number of sets completed equals or exceeds 3. Otherwise, it will resolve to \"Under.\"\nA super tie breaker is considered as one (1) set for total set markets.\nIf the match begins but is not completed, this market will resolve 50-50. If the match is canceled before play begins or delayed beyond 7 days from the scheduled date without a result, this market will also resolve 50-50.\nResolution will be based on official Grand Slam statistics.",
+        "outcomes": "[\"Over 2.5\", \"Under 2.5\"]",
+        "outcomePrices": "[\"0\", \"1\"]",
+        "volume": "30.58",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.074396Z",
+        "updatedAt": "2026-01-12T03:29:31.998284Z",
+        "closedTime": "2026-01-12 03:29:10+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Men's: Justin Engel vs George Loffhagen Total Sets: O/U 2.5",
+        "groupItemThreshold": "1",
+        "questionID": "0x27ebf81b3fc9931bf24e4ece048b6a89d26972208aa1e48eea03872f57719ebb",
+        "umaEndDate": "2026-01-12T03:29:10Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 30.58,
+        "liquidityNum": 0,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"21162652518597094574334101940119402951156130714510425317485767311890150668856\", \"63751306595947025987381946661832766698773385180998532584599314098767813799188\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volumeClob": 30.58,
+        "liquidityAmm": 0,
+        "liquidityClob": 0,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:42Z",
+        "cyom": false,
+        "competitive": 0,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "oneDayPriceChange": -0.995,
+        "oneHourPriceChange": -0.0045,
+        "bestAsk": 0.001,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_set_totals",
+        "line": 2.5,
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:10:09.004932Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162101",
+        "question": "Engel vs. Loffhagen: Match O/U 21.5",
+        "conditionId": "0x011858cc9ad4db2d9ee6d37d02c04bb436a2224c64ad20fae591d2daec42698f",
+        "slug": "atp-engel-loffhag-2026-01-11-match-total-21pt5",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "liquidity": "0",
+        "startDate": "2026-01-11T18:27:03.785497Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "description": "This market refers to the tennis match between Justin Engel and George Loffhagen in the Australian Open, Qualification ATP, scheduled for January 11 2026.\nThis market will resolve to \"Over\" if the total number of games completed across all sets equals or exceeds 22. Otherwise, it will resolve to \"Under.\"\nAll tiebreaksтАФincluding any Champions/Super tiebreakтАФcount as one (1) game toward the total.\nIf the match begins but is not completed, this market will resolve 50-50. If the match is canceled before play begins or delayed beyond 7 days from the scheduled date without a result, this market will also resolve 50-50.\nResolution will be based on official Grand Slam statistics.",
+        "outcomes": "[\"Over\", \"Under\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "1467.57",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.074519Z",
+        "updatedAt": "2026-01-12T03:30:28.025389Z",
+        "closedTime": "2026-01-12 03:30:06+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Men's: Justin Engel vs George Loffhagen Match O/U 21.5",
+        "groupItemThreshold": "1",
+        "questionID": "0x61e9f36d1e8fdcf7b8ec452a97061d55b8a9e911740ad8c8a3703460f2f6326c",
+        "umaEndDate": "2026-01-12T03:30:06Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 1467.57,
+        "liquidityNum": 0,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"93745451598299039601256904204893347246696151074875575539900623651371538515406\", \"14708515743236815605234191833657796064343114614522195893551293843751247751871\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volumeClob": 1467.57,
+        "liquidityAmm": 0,
+        "liquidityClob": 0,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:40Z",
+        "cyom": false,
+        "competitive": 0,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "oneDayPriceChange": -0.004,
+        "oneHourPriceChange": 0.0035,
+        "lastTradePrice": 0.999,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_match_totals",
+        "line": 21.5,
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:10:08.172642Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162103",
+        "question": "Engel vs. Loffhagen: Set 1 Games O/U 8.5",
+        "conditionId": "0xe47bdde28330e925380a8042af5e6fe111b18f76cbacd196f05ba52fecc755c8",
+        "slug": "atp-engel-loffhag-2026-01-11-first-set-total-8pt5",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "startDate": "2026-01-11T18:27:05.292387Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "description": "This market refers to the tennis match between Justin Engel and George Loffhagen in the Australian Open, Qualification ATP, scheduled for January 11 2026.\nThis market will resolve to \"Over\" if the total number of games completed in the first set equals or exceeds 9. Otherwise, it will resolve to \"Under.\"\nAny first-set tiebreak counts as one (1) game toward the total.\nIf the first set is not completed for any reason, this market will resolve 50-50. If the match is canceled before play begins, or delayed beyond 7 days without commencement, this market will also resolve 50-50.\nResolution will be based on official Grand Slam results.",
+        "outcomes": "[\"Over\", \"Under\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "1427",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.075221Z",
+        "updatedAt": "2026-01-13T08:21:16.443177Z",
+        "closedTime": "2026-01-12 02:25:26+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Men's: Justin Engel vs George Loffhagen Set 1 O/U 8.5",
+        "groupItemThreshold": "2",
+        "questionID": "0x38002de11e8f1eb5c687cde9d009ba539e892e542639665ca15ec0a0f2da6a39",
+        "umaEndDate": "2026-01-12T02:25:26Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 1427,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "volume1wk": 1427,
+        "volume1mo": 1427,
+        "volume1yr": 1427,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"47584986843132660132670431403447657382295452443839492732783601783037595959319\", \"11294419536111172930362925363769083023867225002061881862639361676971939985493\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volume1wkClob": 1427,
+        "volume1moClob": 1427,
+        "volume1yrClob": 1427,
+        "volumeClob": 1427,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:42Z",
+        "cyom": false,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "oneDayPriceChange": -0.003,
+        "oneHourPriceChange": 0.0005,
+        "lastTradePrice": 0.999,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_first_set_totals",
+        "line": 8.5,
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:10:09.00512Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162102",
+        "question": "Set 1 Winner: Engel vs Loffhagen",
+        "conditionId": "0xe90ebd05146229325534b347c0031187569b376bf3a1c0ac3859a2c462a39c53",
+        "slug": "atp-engel-loffhag-2026-01-11-first-set-winner-Engel-vs-Loffhagen",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "startDate": "2026-01-11T18:27:03.279427Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "description": "This market refers to the tennis match between Justin Engel and George Loffhagen in the Australian Open, Qualification ATP, scheduled for January 11 2026.\nThis market will resolve to тАЬEngelтАЭ if Justin Engel wins the first set. It will resolve to тАЬLoffhagenтАЭ if George Loffhagen wins the first set.\nIf the match begins but is not completed, and the first set is concluded with a winner determined, this market will resolve based on that completed set. If the first set is not completed for any reason, this market will resolve 50-50.\nIf the match is canceled (not played at all) or is delayed beyond 7 days from the scheduled date without play beginning, this market will resolve 50-50.\nResolution will be based on official Grand Slam match statistics.",
+        "outcomes": "[\"Engel\", \"Loffhagen\"]",
+        "outcomePrices": "[\"0\", \"1\"]",
+        "volume": "435.58",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.075217Z",
+        "updatedAt": "2026-01-13T08:21:16.826012Z",
+        "closedTime": "2026-01-12 02:28:26+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Men's: Justin Engel vs George Loffhagen Set 1 Winner",
+        "groupItemThreshold": "1",
+        "questionID": "0x7c8583c36e65f2983da7e1c71f52eec9dae6c5010570b65c6a6e6846b24beb4a",
+        "umaEndDate": "2026-01-12T02:28:26Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 435.58,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "volume1wk": 435.58000000000004,
+        "volume1mo": 435.58000000000004,
+        "volume1yr": 435.58000000000004,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"62760689916202018200277913446840562023255304556882595633763166607096952453111\", \"12831124479864809772211751612477376194908090462969198594590622779421099565805\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volume1wkClob": 435.58000000000004,
+        "volume1moClob": 435.58000000000004,
+        "volume1yrClob": 435.58000000000004,
+        "volumeClob": 435.58,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:40Z",
+        "cyom": false,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "oneHourPriceChange": -0.0005,
+        "lastTradePrice": 0.69,
+        "bestAsk": 0.001,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_first_set_winner",
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:10:09.005822Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162104",
+        "question": "Engel vs. Loffhagen: Match O/U 22.5",
+        "conditionId": "0xcfac65919bdbd95c00179bb9607f6f5cfade816bf37b42a01dd9340211a16df3",
+        "slug": "atp-engel-loffhag-2026-01-11-match-total-22pt5",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "startDate": "2026-01-11T18:27:01.571645Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "description": "This market refers to the tennis match between Justin Engel and George Loffhagen in the Australian Open, Qualification ATP, scheduled for January 11 2026.\nThis market will resolve to \"Over\" if the total number of games completed across all sets equals or exceeds 23. Otherwise, it will resolve to \"Under.\"\nAll tiebreaksтАФincluding any Champions/Super tiebreakтАФcount as one (1) game toward the total.\nIf the match begins but is not completed, this market will resolve 50-50. If the match is canceled before play begins or delayed beyond 7 days from the scheduled date without a result, this market will also resolve 50-50.\nResolution will be based on official Grand Slam statistics.",
+        "outcomes": "[\"Over\", \"Under\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "3100.898367",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.084558Z",
+        "updatedAt": "2026-01-13T08:21:16.504316Z",
+        "closedTime": "2026-01-12 03:31:02+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Men's: Justin Engel vs George Loffhagen Match O/U 22.5",
+        "groupItemThreshold": "1",
+        "questionID": "0xf74e5db9a06ab071986df784c433ed504ef749aa0077fa313b99ae37f4915f2d",
+        "umaEndDate": "2026-01-12T03:31:02Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 3100.898367,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "volume1wk": 3100.898367,
+        "volume1mo": 3100.898367,
+        "volume1yr": 3100.898367,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"39237588547429375241419140089604780254868829578486568503157600044449894310546\", \"88181269415233951539589600211181549625702276195361651157428935413881339590391\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volume1wkClob": 3100.898367,
+        "volume1moClob": 3100.898367,
+        "volume1yrClob": 3100.898367,
+        "volumeClob": 3100.898367,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:38Z",
+        "cyom": false,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "oneDayPriceChange": -0.46,
+        "oneHourPriceChange": 0.0035,
+        "lastTradePrice": 0.999,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_match_totals",
+        "line": 22.5,
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:10:08.997025Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162106",
+        "question": "Engel vs. Loffhagen: Match O/U 23.5",
+        "conditionId": "0xd60bd4ddeb364c06e958d4397014f1ab892bab02fb2c0a08632d0543032e04d0",
+        "slug": "atp-engel-loffhag-2026-01-11-match-total-23pt5",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "liquidity": "0",
+        "startDate": "2026-01-11T18:27:02.279256Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "description": "This market refers to the tennis match between Justin Engel and George Loffhagen in the Australian Open, Qualification ATP, scheduled for January 11 2026.\nThis market will resolve to \"Over\" if the total number of games completed across all sets equals or exceeds 24. Otherwise, it will resolve to \"Under.\"\nAll tiebreaksтАФincluding any Champions/Super tiebreakтАФcount as one (1) game toward the total.\nIf the match begins but is not completed, this market will resolve 50-50. If the match is canceled before play begins or delayed beyond 7 days from the scheduled date without a result, this market will also resolve 50-50.\nResolution will be based on official Grand Slam statistics.",
+        "outcomes": "[\"Over\", \"Under\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "1868.57",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.093792Z",
+        "updatedAt": "2026-01-12T03:30:33.014074Z",
+        "closedTime": "2026-01-12 03:30:10+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Men's: Justin Engel vs George Loffhagen Match O/U 23.5",
+        "groupItemThreshold": "1",
+        "questionID": "0x72644f7f0621591866328882e991f569b25d4889faada80b26158a364f40a6d4",
+        "umaEndDate": "2026-01-12T03:30:10Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 1868.57,
+        "liquidityNum": 0,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"79180942819896423627910514697613863972762684047306527391702382674671771386097\", \"89179205580989241814875138516058091949981778393560860082115510531517545905188\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volumeClob": 1868.57,
+        "liquidityAmm": 0,
+        "liquidityClob": 0,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:40Z",
+        "cyom": false,
+        "competitive": 0,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "oneDayPriceChange": -0.004,
+        "oneHourPriceChange": 0.0035,
+        "lastTradePrice": 0.999,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_match_totals",
+        "line": 23.5,
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:10:08.998032Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162105",
+        "question": "Engel vs. Loffhagen: Set 1 Games O/U 9.5",
+        "conditionId": "0xe2b31666937f72cb0e0d08a74fb28dab2a03e4dc673d765ed24cbf33adaf25c8",
+        "slug": "atp-engel-loffhag-2026-01-11-first-set-total-9pt5",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "startDate": "2026-01-11T18:27:03.532522Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "description": "This market refers to the tennis match between Justin Engel and George Loffhagen in the Australian Open, Qualification ATP, scheduled for January 11 2026.\nThis market will resolve to \"Over\" if the total number of games completed in the first set equals or exceeds 10. Otherwise, it will resolve to \"Under.\"\nAny first-set tiebreak counts as one (1) game toward the total.\nIf the first set is not completed for any reason, this market will resolve 50-50. If the match is canceled before play begins, or delayed beyond 7 days without commencement, this market will also resolve 50-50.\nResolution will be based on official Grand Slam results.",
+        "outcomes": "[\"Over\", \"Under\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "840",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.091545Z",
+        "updatedAt": "2026-01-13T08:21:16.057867Z",
+        "closedTime": "2026-01-12 02:29:26+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Men's: Justin Engel vs George Loffhagen Set 1 O/U 9.5",
+        "groupItemThreshold": "2",
+        "questionID": "0x77fae84dcca917601c9b8e84dc1d4193232fd71d7adbc050fdcd2d482481a3c9",
+        "umaEndDate": "2026-01-12T02:29:26Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 840,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "volume1wk": 840,
+        "volume1mo": 840,
+        "volume1yr": 840,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"111889388727440255108477607614163777605607671253972446389753054860639968707832\", \"98691906956783064786594530136012057593753797498491626127199024392928308654649\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volume1wkClob": 840,
+        "volume1moClob": 840,
+        "volume1yrClob": 840,
+        "volumeClob": 840,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:40Z",
+        "cyom": false,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "oneDayPriceChange": -0.003,
+        "oneHourPriceChange": 0.0025,
+        "lastTradePrice": 0.999,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_first_set_totals",
+        "line": 9.5,
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:10:09.001401Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162107",
+        "question": "Engel vs. Loffhagen: Set 1 Games O/U 10.5",
+        "conditionId": "0xabcde59c037d77de9e7595e1554780415bfb5e04a07121f469f77624ed34ba09",
+        "slug": "atp-engel-loffhag-2026-01-11-first-set-total-10pt5",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "startDate": "2026-01-11T18:27:05.545969Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+        "description": "This market refers to the tennis match between Justin Engel and George Loffhagen in the Australian Open, Qualification ATP, scheduled for January 11 2026.\nThis market will resolve to \"Over\" if the total number of games completed in the first set equals or exceeds 11. Otherwise, it will resolve to \"Under.\"\nAny first-set tiebreak counts as one (1) game toward the total.\nIf the first set is not completed for any reason, this market will resolve 50-50. If the match is canceled before play begins, or delayed beyond 7 days without commencement, this market will also resolve 50-50.\nResolution will be based on official Grand Slam results.",
+        "outcomes": "[\"Over\", \"Under\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "875.025",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.107879Z",
+        "updatedAt": "2026-01-13T08:21:16.659001Z",
+        "closedTime": "2026-01-12 02:28:26+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Men's: Justin Engel vs George Loffhagen Set 1 O/U 10.5",
+        "groupItemThreshold": "2",
+        "questionID": "0x47608caf51e70fbf67de6d851a791cf29c0ece43699912b6c35450d43a8d17ea",
+        "umaEndDate": "2026-01-12T02:28:26Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 875.025,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "volume1wk": 875.025,
+        "volume1mo": 875.025,
+        "volume1yr": 875.025,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"106376087747599195891484677112532004831327902936213547633565629626456130739549\", \"82155869563811792797883819919971232722696659557840598690405171427965770044848\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volume1wkClob": 875.025,
+        "volume1moClob": 875.025,
+        "volume1yrClob": 875.025,
+        "volumeClob": 875.025,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:42Z",
+        "cyom": false,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "oneHourPriceChange": 0.001,
+        "lastTradePrice": 0.999,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_first_set_totals",
+        "line": 10.5,
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:10:09.00381Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      }
+    ]
+  negRisk = false
+  negRiskAugmented = false
+  new = false
+  openInterest = 0
+  pendingDeployment = false
+  requiresTranslation = false
+  resolutionSource = "https://ausopen.com/"
+  restricted = true
+  series:
+    [
+      {
+        "id": "10365",
+        "ticker": "atp",
+        "slug": "atp",
+        "title": "ATP",
+        "seriesType": "single",
+        "recurrence": "daily",
+        "image": "",
+        "icon": "",
+        "active": true,
+        "closed": false,
+        "archived": false,
+        "featured": false,
+        "restricted": true,
+        "createdAt": "2025-10-07T17:08:06.009679Z",
+        "updatedAt": "2026-08-03T07:15:26.581358Z",
+        "volume24hr": 4085236.1825019987,
+        "volume": 2370376.629342,
+        "liquidity": 8034997.09957,
+        "commentCount": 3158,
+        "requiresTranslation": false
+      }
+    ]
+  seriesSlug = "atp"
+  showAllOutcomes = true
+  showMarketImages = false
+  slug = "atp-engel-loffhag-2026-01-11"
+  startDate = "2026-01-11T17:11:04.160636Z"
+  startTime = "2026-01-11T23:00:00Z"
+  tags:
+    [
+      {
+        "id": "864",
+        "label": "Tennis",
+        "slug": "tennis",
+        "forceShow": false,
+        "publishedAt": "2024-01-12 19:45:09.662+00",
+        "createdAt": "2024-01-12T19:45:09.677Z",
+        "updatedAt": "2026-04-17T20:48:44.296144Z",
+        "requiresTranslation": false
+      },
+      {
+        "id": "1",
+        "label": "Sports",
+        "slug": "sports",
+        "forceShow": false,
+        "publishedAt": "2023-10-24 22:37:50.296+00",
+        "updatedBy": 15,
+        "createdAt": "2023-10-24T22:37:50.31Z",
+        "updatedAt": "2026-04-17T20:47:16.461062Z",
+        "forceHide": true,
+        "requiresTranslation": false
+      },
+      {
+        "id": "100639",
+        "label": "Games",
+        "slug": "games",
+        "forceShow": false,
+        "createdAt": "2024-09-23T22:41:37.670714Z",
+        "updatedAt": "2026-03-09T22:28:03.358133Z",
+        "requiresTranslation": false
+      }
+    ]
+  ticker = "atp-engel-loffhag-2026-01-11"
+  title = "Australian Open Men's: Justin Engel vs George Loffhagen"
+  updatedAt = "2026-01-13T08:21:25.052784Z"
+  version = "v1"
+  volume = 27446.586959
+  volume1mo = 24079.866959000006
+  volume1wk = 24079.866959000006
+  volume1yr = 24079.866959000006
+
+------------------------------------------------------------------------
+POLYA RYNKA (match market) (81 poley)
+------------------------------------------------------------------------
+  acceptingOrders = false
+  acceptingOrdersTimestamp = "2026-01-11T17:09:56Z"
+  active = true
+  approved = true
+  archived = false
+  automaticallyActive = true
+  automaticallyResolved = true
+  bestAsk = 0.001
+  clearBookOnStart = true
+  clobTokenIds = "[\"40025806199860347526118143314827465231170745642512154421317098318571692832448\", \"51382034720489736025848180275979291269109754293010195641404268168443326954588\"]"
+  closed = true
+  closedTime = "2026-01-12 03:26:06+00"
+  comboStatus = "disabled"
+  conditionId = "0x5df94855bf7b71329e2bf86fa843268d794c4a99e67f0d818b74ef3e9c9c16f5"
+  createdAt = "2026-01-11T17:00:16.28784Z"
+  customLiveness = 0
+  cyom = false
+  deploying = false
+  deployingTimestamp = "2026-01-11T17:00:36.143651Z"
+  description = "This market refers on the tennis match between Justin Engel and George Loffhagen in the Australian Open, Qualification ATP, scheduled for January 11 at 6:00PM ET.\n\nThis market will resolve to 'Engel' if Justin Engel advances against George Loffhagen.\n\nThis market will resolve to 'Loffhagen' if George Loffhagen advances against Justin Engel.\n\nIf the match is canceled (not played at all), ends in a tie, or is delayed beyond 7 days from the scheduled date without a winner determined, this market will resolve to 50-50.\n\nIf the match begins but is not completed, and one player advances due to the opponent's retirement, default, or disqualification, this market will resolve to the player who advances.\n\nIf the match ends in a walkover (player withdraws before the start and the other advances automatically), this market will resolve to 50-50.\n\nThe primary resolution source will be official information from the Australian Open. A consensus of credible reporting may also be used."
+  enableOrderBook = true
+  endDate = "2026-01-25T23:00:00Z"
+  endDateIso = "2026-01-25"
+  featured = false
+  feeType = null
+  feesEnabled = false
+  funded = false
+  gameStartTime = "2026-01-11 23:00:00+00"
+  groupItemThreshold = "0"
+  hasReviewedDates = true
+  holdingRewardsEnabled = false
+  icon = "https://polymarket-upload.s3.us-east-2.amazonaws.com/australian-open-f3747f3ad1.png"
+  id = "1160557"
+  image = "https://polymarket-upload.s3.us-east-2.amazonaws.com/australian-open-f3747f3ad1.png"
+  lastTradePrice = 0.002
+  manualActivation = false
+  marketMakerAddress = ""
+  negRisk = false
+  negRiskOther = false
+  negRiskRequestID = ""
+  new = false
+  oneHourPriceChange = -0.004
+  orderMinSize = 5
+  orderPriceMinTickSize = 0.001
+  outcomePrices = "[\"0\", \"1\"]"
+  outcomes = "[\"Engel\", \"Loffhagen\"]"
+  pagerDutyNotificationEnabled = false
+  pendingDeployment = false
+  question = "Australian Open Men's: Justin Engel vs George Loffhagen"
+  questionID = "0x1256e051531c4fe9c524a48d44da7e3060acb247f1b118413d0b5e1054e547af"
+  ready = false
+  requiresTranslation = false
+  resolutionSource = "https://ausopen.com/"
+  resolvedBy = "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7"
+  restricted = true
+  rewardsMaxSpread = 0
+  rewardsMinSize = 0
+  rfqEnabled = false
+  secondsDelay = 3
+  slug = "atp-engel-loffhag-2026-01-11"
+  sportsMarketType = "moneyline"
+  spread = 0.001
+  startDate = "2026-01-11T17:10:18.118551Z"
+  startDateIso = "2026-01-11"
+  submitted_by = "0x91430CaD2d3975766499717fA0D66A78D814E5c5"
+  umaBond = "500"
+  umaEndDate = "2026-01-12T03:26:06Z"
+  umaResolutionStatus = "resolved"
+  umaResolutionStatuses = "[\"proposed\"]"
+  umaReward = "2"
+  updatedAt = "2026-01-13T08:21:16.667277Z"
+  version = "v1"
+  volume = "17401.363592"
+  volume1mo = 17401.363592000005
+  volume1moClob = 17401.363592000005
+  volume1wk = 17401.363592000005
+  volume1wkClob = 17401.363592000005
+  volume1yr = 17401.363592000005
+  volume1yrClob = 17401.363592000005
+  volumeClob = 17401.363592
+  volumeNum = 17401.363592
+
+########################################################################
+# DAMP SOBYTIYA: WTA
+########################################################################
+
+------------------------------------------------------------------------
+POLYA SOBYTIYA (event) (46 poley)
+------------------------------------------------------------------------
+  active = true
+  archived = false
+  automaticallyActive = true
+  automaticallyResolved = true
+  closed = true
+  closedTime = "2026-01-12T06:02:00Z"
+  commentCount = 0
+  createdAt = "2026-01-11T17:00:41.324095Z"
+  creationDate = "2026-01-11T23:00:00Z"
+  cyom = false
+  deploying = false
+  description = "This market refers on the tennis match between Tina Smith and Cadence Brace in the Australian Open, Qualification WTA, scheduled for January 11 at 6:00PM ET.\n\nThis market will resolve to 'Smith' if Tina Smith advances against Cadence Brace.\n\nThis market will resolve to 'Brace' if Cadence Brace advances against Tina Smith.\n\nIf the match is canceled (not played at all), ends in a tie, or is delayed beyond 7 days from the scheduled date without a winner determined, this market will resolve to 50-50.\n\nIf the match begins but is not completed, and one player advances due to the opponent's retirement, default, or disqualification, this market will resolve to the player who advances.\n\nIf the match ends in a walkover (player withdraws before the start and the other advances automatically), this market will resolve to 50-50.\n\nThe primary resolution source will be official information from the Australian Open. A consensus of credible reporting may also be used."
+  enableNegRisk = false
+  enableOrderBook = true
+  endDate = "2026-01-25T23:00:00Z"
+  eventDate = "2026-01-11"
+  featured = false
+  gameId = 5132301
+  icon = "https://polymarket-upload.s3.us-east-2.amazonaws.com/australian-open-f3747f3ad1.png"
+  id = "157860"
+  image = "https://polymarket-upload.s3.us-east-2.amazonaws.com/australian-open-f3747f3ad1.png"
+  markets:
+    [
+      {
+        "id": "1160575",
+        "question": "Australian Open Women's: Tina Smith vs Cadence Brace",
+        "conditionId": "0x7558223e4ba1da845c4a27ef614ed25197e728360b031028504e2d4dc1d44999",
+        "slug": "wta-smith-brace-2026-01-11",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "startDate": "2026-01-11T17:10:35.379624Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/australian-open-f3747f3ad1.png",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/australian-open-f3747f3ad1.png",
+        "description": "This market refers on the tennis match between Tina Smith and Cadence Brace in the Australian Open, Qualification WTA, scheduled for January 11 at 6:00PM ET.\n\nThis market will resolve to 'Smith' if Tina Smith advances against Cadence Brace.\n\nThis market will resolve to 'Brace' if Cadence Brace advances against Tina Smith.\n\nIf the match is canceled (not played at all), ends in a tie, or is delayed beyond 7 days from the scheduled date without a winner determined, this market will resolve to 50-50.\n\nIf the match begins but is not completed, and one player advances due to the opponent's retirement, default, or disqualification, this market will resolve to the player who advances.\n\nIf the match ends in a walkover (player withdraws before the start and the other advances automatically), this market will resolve to 50-50.\n\nThe primary resolution source will be official information from the Australian Open. A consensus of credible reporting may also be used.",
+        "outcomes": "[\"Smith\", \"Brace\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "10381.986177",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T17:00:41.432102Z",
+        "updatedAt": "2026-01-13T08:21:15.5855Z",
+        "closedTime": "2026-01-12 06:00:56+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemThreshold": "0",
+        "questionID": "0xbd578c355d864a3d99576609c5b7cdbe8fe489ae4dd8dc4967361ec6e72cb3b6",
+        "umaEndDate": "2026-01-12T06:00:56Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 10381.986177,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "volume1wk": 10381.986177,
+        "volume1mo": 10381.986177,
+        "volume1yr": 10381.986177,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"29940936148069770455306208241531372143353786347773296501068221638077954708605\", \"114207912390550195485904938148054763774037869372355769378290064841100673241129\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volume1wkClob": 10381.986177,
+        "volume1moClob": 10381.986177,
+        "volume1yrClob": 10381.986177,
+        "volumeClob": 10381.986177,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T17:10:12Z",
+        "cyom": false,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "lastTradePrice": 0.999,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "moneyline",
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T17:00:54.77798Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162117",
+        "question": "Smith vs. Brace: Total Sets O/U 2.5",
+        "conditionId": "0xf7dd93d34ef35219f5c2dbf5a60eeac69415c866a5d032180f9cff5cdda39753",
+        "slug": "wta-smith-brace-2026-01-11-set-totals-2pt5",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "liquidity": "0",
+        "startDate": "2026-01-11T18:26:46.604209Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "description": "This market refers to the tennis match between Tina Smith and Cadence Brace in the Australian Open, Qualification WTA, scheduled for January 11 2026.\nThis market will resolve to \"Over\" if the total number of sets completed equals or exceeds 3. Otherwise, it will resolve to \"Under.\"\nA super tie breaker is considered as one (1) set for total set markets.\nIf the match begins but is not completed, this market will resolve 50-50. If the match is canceled before play begins or delayed beyond 7 days from the scheduled date without a result, this market will also resolve 50-50.\nResolution will be based on official Grand Slam statistics.",
+        "outcomes": "[\"Over 2.5\", \"Under 2.5\"]",
+        "outcomePrices": "[\"0\", \"1\"]",
+        "volume": "170.58",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.880006Z",
+        "updatedAt": "2026-01-12T06:00:02.158082Z",
+        "closedTime": "2026-01-12 05:59:40+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Women's: Tina Smith vs Cadence Brace Total Sets: O/U 2.5",
+        "groupItemThreshold": "1",
+        "questionID": "0xdf010b5de61301ec77663d987450973e722ca4aa3f2d3634dca98ce3e7ea7541",
+        "umaEndDate": "2026-01-12T05:59:40Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 170.58,
+        "liquidityNum": 0,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"47425658952995743364301396475168758318725426400099433446295936217760268637600\", \"113013948221916292385717186521831937387335934319898025131404843871576092295956\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volumeClob": 170.58,
+        "liquidityAmm": 0,
+        "liquidityClob": 0,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:24Z",
+        "cyom": false,
+        "competitive": 0,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "oneDayPriceChange": -0.49,
+        "lastTradePrice": 0.5,
+        "bestAsk": 0.001,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_set_totals",
+        "line": 2.5,
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:09:45.3416Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162118",
+        "question": "Smith vs. Brace: Match O/U 21.5",
+        "conditionId": "0x7a158fdc6c12e3b778a902762744d09458ed08db955cb25ee1eb509be755caf2",
+        "slug": "wta-smith-brace-2026-01-11-match-total-21pt5",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "liquidity": "0",
+        "startDate": "2026-01-11T18:26:45.024537Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "description": "This market refers to the tennis match between Tina Smith and Cadence Brace in the Australian Open, Qualification WTA, scheduled for January 11 2026.\nThis market will resolve to \"Over\" if the total number of games completed across all sets equals or exceeds 22. Otherwise, it will resolve to \"Under.\"\nAll tiebreaksтАФincluding any Champions/Super tiebreakтАФcount as one (1) game toward the total.\nIf the match begins but is not completed, this market will resolve 50-50. If the match is canceled before play begins or delayed beyond 7 days from the scheduled date without a result, this market will also resolve 50-50.\nResolution will be based on official Grand Slam statistics.",
+        "outcomes": "[\"Over\", \"Under\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "727.58",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.880095Z",
+        "updatedAt": "2026-01-12T06:01:18.086245Z",
+        "closedTime": "2026-01-12 06:00:56+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Women's: Tina Smith vs Cadence Brace Match O/U 21.5",
+        "groupItemThreshold": "1",
+        "questionID": "0xd26b7a11e7eab73b5e6e46ef74972e6a28a0dd795d8ffe4b89d9ebe65f5ddafc",
+        "umaEndDate": "2026-01-12T06:00:56Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 727.58,
+        "liquidityNum": 0,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"38398404599027103302093452777809227208403458826662239754335243163191710257284\", \"30077570197467626932579223925231882059876794748180065485491802171665226869650\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volumeClob": 727.58,
+        "liquidityAmm": 0,
+        "liquidityClob": 0,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:22Z",
+        "cyom": false,
+        "competitive": 0,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "oneDayPriceChange": -0.52,
+        "lastTradePrice": 0.999,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_match_totals",
+        "line": 21.5,
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:09:45.333397Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162120",
+        "question": "Smith vs. Brace: Set 1 Games O/U 8.5",
+        "conditionId": "0x1e5c7e5524b3752c342f4a01c7e9d24d1f8a075957630eaea40e8629737ff818",
+        "slug": "wta-smith-brace-2026-01-11-first-set-total-8pt5",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "liquidity": "0",
+        "startDate": "2026-01-11T18:26:45.277686Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "description": "This market refers to the tennis match between Tina Smith and Cadence Brace in the Australian Open, Qualification WTA, scheduled for January 11 2026.\nThis market will resolve to \"Over\" if the total number of games completed in the first set equals or exceeds 9. Otherwise, it will resolve to \"Under.\"\nAny first-set tiebreak counts as one (1) game toward the total.\nIf the first set is not completed for any reason, this market will resolve 50-50. If the match is canceled before play begins, or delayed beyond 7 days without commencement, this market will also resolve 50-50.\nResolution will be based on official Grand Slam results.",
+        "outcomes": "[\"Over\", \"Under\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "734.5855",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.880789Z",
+        "updatedAt": "2026-01-12T03:22:31.947894Z",
+        "closedTime": "2026-01-12 03:22:10+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Women's: Tina Smith vs Cadence Brace Set 1 O/U 8.5",
+        "groupItemThreshold": "2",
+        "questionID": "0xee8179d095a67ebb7b1bd8f27cf848bc8eb56a74abf94b40ce86916f056dbd81",
+        "umaEndDate": "2026-01-12T03:22:10Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 734.5855,
+        "liquidityNum": 0,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"114780214438938567757090622462826562741371891065491560834372769161740006552135\", \"2074445393055118401009089167345006555577284395066931142910355650117924223377\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volumeClob": 734.5855,
+        "liquidityAmm": 0,
+        "liquidityClob": 0,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:22Z",
+        "cyom": false,
+        "competitive": 0,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "lastTradePrice": 0.999,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_first_set_totals",
+        "line": 8.5,
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:09:46.413454Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162119",
+        "question": "Set 1 Winner: Smith vs Brace",
+        "conditionId": "0xb28351d4f1045739553b74ff1fa3a05a068d08ee5dea81509ec5c1ddde91fb37",
+        "slug": "wta-smith-brace-2026-01-11-first-set-winner-Smith-vs-Brace",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "startDate": "2026-01-11T18:26:46.096755Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "description": "This market refers to the tennis match between Tina Smith and Cadence Brace in the Australian Open, Qualification WTA, scheduled for January 11 2026.\nThis market will resolve to тАЬSmithтАЭ if Tina Smith wins the first set. It will resolve to тАЬBraceтАЭ if Cadence Brace wins the first set.\nIf the match begins but is not completed, and the first set is concluded with a winner determined, this market will resolve based on that completed set. If the first set is not completed for any reason, this market will resolve 50-50.\nIf the match is canceled (not played at all) or is delayed beyond 7 days from the scheduled date without play beginning, this market will resolve 50-50.\nResolution will be based on official Grand Slam match statistics.",
+        "outcomes": "[\"Smith\", \"Brace\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "775.3593",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.880775Z",
+        "updatedAt": "2026-01-13T08:21:16.311727Z",
+        "closedTime": "2026-01-12 03:24:08+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Women's: Tina Smith vs Cadence Brace Set 1 Winner",
+        "groupItemThreshold": "1",
+        "questionID": "0x7031093063fcf039b343a22a842be7f64b9e3a95ca2f7e0036d65bd07412beb2",
+        "umaEndDate": "2026-01-12T03:24:08Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 775.3593,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "volume1wk": 775.3593,
+        "volume1mo": 775.3593,
+        "volume1yr": 775.3593,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"7499202078668845358374629974564436907555022398829646929585337414835770393568\", \"45012186500937883371615304758353222330978367626628086712782637652941975713864\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volume1wkClob": 775.3593,
+        "volume1moClob": 775.3593,
+        "volume1yrClob": 775.3593,
+        "volumeClob": 775.3593,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:24Z",
+        "cyom": false,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "oneDayPriceChange": -0.005,
+        "oneHourPriceChange": 0.0045,
+        "lastTradePrice": 0.999,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_first_set_winner",
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:09:46.473919Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162121",
+        "question": "Smith vs. Brace: Match O/U 22.5",
+        "conditionId": "0x51c697500e4072a45b9005850feaf3ff5b10013f7268e7cdcc8bddffdc128991",
+        "slug": "wta-smith-brace-2026-01-11-match-total-22pt5",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "liquidity": "0",
+        "startDate": "2026-01-11T18:26:43.277782Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "description": "This market refers to the tennis match between Tina Smith and Cadence Brace in the Australian Open, Qualification WTA, scheduled for January 11 2026.\nThis market will resolve to \"Over\" if the total number of games completed across all sets equals or exceeds 23. Otherwise, it will resolve to \"Under.\"\nAll tiebreaksтАФincluding any Champions/Super tiebreakтАФcount as one (1) game toward the total.\nIf the match begins but is not completed, this market will resolve 50-50. If the match is canceled before play begins or delayed beyond 7 days from the scheduled date without a result, this market will also resolve 50-50.\nResolution will be based on official Grand Slam statistics.",
+        "outcomes": "[\"Over\", \"Under\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "30.58",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.889216Z",
+        "updatedAt": "2026-01-12T06:01:18.078939Z",
+        "closedTime": "2026-01-12 06:00:56+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Women's: Tina Smith vs Cadence Brace Match O/U 22.5",
+        "groupItemThreshold": "1",
+        "questionID": "0x69cee3efed2a64cb7920d829d823a08997041564f766f2d5a4f9443ae60297f6",
+        "umaEndDate": "2026-01-12T06:00:56Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 30.58,
+        "liquidityNum": 0,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"115056464770771710204957303701711311748584996252236731263487141589404865637847\", \"6909350411073139142700550820990901786216095608197271088549079176781489920215\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volumeClob": 30.58,
+        "liquidityAmm": 0,
+        "liquidityClob": 0,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:20Z",
+        "cyom": false,
+        "competitive": 0,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "lastTradePrice": 0.99,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_match_totals",
+        "line": 22.5,
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:09:45.339091Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162123",
+        "question": "Smith vs. Brace: Match O/U 23.5",
+        "conditionId": "0xbebfeee1e8eac2d66cba55a1de7a1351c5de378a5b96ba262063777e03d18131",
+        "slug": "wta-smith-brace-2026-01-11-match-total-23pt5",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "liquidity": "0",
+        "startDate": "2026-01-11T18:26:46.350543Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "description": "This market refers to the tennis match between Tina Smith and Cadence Brace in the Australian Open, Qualification WTA, scheduled for January 11 2026.\nThis market will resolve to \"Over\" if the total number of games completed across all sets equals or exceeds 24. Otherwise, it will resolve to \"Under.\"\nAll tiebreaksтАФincluding any Champions/Super tiebreakтАФcount as one (1) game toward the total.\nIf the match begins but is not completed, this market will resolve 50-50. If the match is canceled before play begins or delayed beyond 7 days from the scheduled date without a result, this market will also resolve 50-50.\nResolution will be based on official Grand Slam statistics.",
+        "outcomes": "[\"Over\", \"Under\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "30.58",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.898483Z",
+        "updatedAt": "2026-01-12T06:01:15.928912Z",
+        "closedTime": "2026-01-12 06:00:54+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Women's: Tina Smith vs Cadence Brace Match O/U 23.5",
+        "groupItemThreshold": "1",
+        "questionID": "0xf917d23e7e1471eec8e8d35cab5826ccfeda13b728378d3a44e89cea20b8b174",
+        "umaEndDate": "2026-01-12T06:00:54Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 30.58,
+        "liquidityNum": 0,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"38037547444064645512035275143540828831251704201466211907289426593721577547621\", \"19126649169275073252479101191217455662783880247464657482968705611621296694002\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volumeClob": 30.58,
+        "liquidityAmm": 0,
+        "liquidityClob": 0,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:24Z",
+        "cyom": false,
+        "competitive": 0,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "lastTradePrice": 0.99,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_match_totals",
+        "line": 23.5,
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:09:45.345403Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162122",
+        "question": "Smith vs. Brace: Set 1 Games O/U 9.5",
+        "conditionId": "0x9a1d7968f5ceea099b8234f3bf8fcf20ab47643ee885ddebece8827881bcf635",
+        "slug": "wta-smith-brace-2026-01-11-first-set-total-9pt5",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "liquidity": "0",
+        "startDate": "2026-01-11T18:26:47.15294Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "description": "This market refers to the tennis match between Tina Smith and Cadence Brace in the Australian Open, Qualification WTA, scheduled for January 11 2026.\nThis market will resolve to \"Over\" if the total number of games completed in the first set equals or exceeds 10. Otherwise, it will resolve to \"Under.\"\nAny first-set tiebreak counts as one (1) game toward the total.\nIf the first set is not completed for any reason, this market will resolve 50-50. If the match is canceled before play begins, or delayed beyond 7 days without commencement, this market will also resolve 50-50.\nResolution will be based on official Grand Slam results.",
+        "outcomes": "[\"Over\", \"Under\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "734.0055",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.897812Z",
+        "updatedAt": "2026-01-12T03:24:28.587152Z",
+        "closedTime": "2026-01-12 03:24:06+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Women's: Tina Smith vs Cadence Brace Set 1 O/U 9.5",
+        "groupItemThreshold": "2",
+        "questionID": "0x6630307904a49294e601a018f45dc2a2a8312144a15b439b7f5daaad08658f69",
+        "umaEndDate": "2026-01-12T03:24:06Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 734.0055,
+        "liquidityNum": 0,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"8252785640950640188600597943875655333583682316296674300613167052545945483563\", \"97624246751710063963318021050200632389594236150874521549812928682517157465199\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volumeClob": 734.0055,
+        "liquidityAmm": 0,
+        "liquidityClob": 0,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:24Z",
+        "cyom": false,
+        "competitive": 0,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "oneDayPriceChange": -0.0005,
+        "lastTradePrice": 0.999,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_first_set_totals",
+        "line": 9.5,
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:09:46.416462Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162124",
+        "question": "Smith vs. Brace: Set 1 Games O/U 10.5",
+        "conditionId": "0x8a54fe519b4617890e80978e9375198c7546e0d12fdf6092f4a75781e8dc044d",
+        "slug": "wta-smith-brace-2026-01-11-first-set-total-10pt5",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "liquidity": "0",
+        "startDate": "2026-01-11T18:26:47.659332Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "description": "This market refers to the tennis match between Tina Smith and Cadence Brace in the Australian Open, Qualification WTA, scheduled for January 11 2026.\nThis market will resolve to \"Over\" if the total number of games completed in the first set equals or exceeds 11. Otherwise, it will resolve to \"Under.\"\nAny first-set tiebreak counts as one (1) game toward the total.\nIf the first set is not completed for any reason, this market will resolve 50-50. If the match is canceled before play begins, or delayed beyond 7 days without commencement, this market will also resolve 50-50.\nResolution will be based on official Grand Slam results.",
+        "outcomes": "[\"Over\", \"Under\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "727.58",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.915165Z",
+        "updatedAt": "2026-01-12T03:26:28.134141Z",
+        "closedTime": "2026-01-12 03:26:06+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Women's: Tina Smith vs Cadence Brace Set 1 O/U 10.5",
+        "groupItemThreshold": "2",
+        "questionID": "0xc240f0791658de8a1a592d16fc85a46a1c906304577f1c3a277f6b6e312d5907",
+        "umaEndDate": "2026-01-12T03:26:06Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 727.58,
+        "liquidityNum": 0,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"9098080360869889447922725442014283526993064997881781187862954783454450129713\", \"54096981530178039760121866593902528650879905416792818446591735601185715067063\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volumeClob": 727.58,
+        "liquidityAmm": 0,
+        "liquidityClob": 0,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:24Z",
+        "cyom": false,
+        "competitive": 0,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "oneDayPriceChange": -0.0005,
+        "lastTradePrice": 0.999,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_first_set_totals",
+        "line": 10.5,
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:09:46.414376Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      },
+      {
+        "id": "1162125",
+        "question": "Set Handicap: Brace (-1.5) vs Smith (+1.5)",
+        "conditionId": "0xc5eb2079c3642c535f5a4023b5bfcf9cfeb8fa1de6bed2c33557189050c37bca",
+        "slug": "wta-smith-brace-2026-01-11-set-handicap-away-1pt5",
+        "resolutionSource": "https://ausopen.com/",
+        "endDate": "2026-01-25T23:00:00Z",
+        "liquidity": "0",
+        "startDate": "2026-01-11T18:26:47.406265Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png",
+        "description": "This market refers to the tennis match between Cadence Brace and Tina Smith in the Australian Open, Qualification WTA, scheduled for January 11 2026.\nThis market will resolve to \"Brace\" if Cadence Brace wins by 2 or more sets than Tina Smith, based on the final completed score. Otherwise, it will resolve to \"Smith.\"\nIf the match begins but is not completed, this market will resolve 50-50. If the match is canceled before play begins or delayed beyond 7 days from the scheduled date without a result, this market will also resolve 50-50.\nResolution will be based on official Grand Slam results.",
+        "outcomes": "[\"Brace\", \"Smith\"]",
+        "outcomePrices": "[\"0\", \"1\"]",
+        "volume": "30.58",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-01-11T18:01:16.949632Z",
+        "updatedAt": "2026-01-12T06:02:22.310284Z",
+        "closedTime": "2026-01-12 06:02:00+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0x91430CaD2d3975766499717fA0D66A78D814E5c5",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Australian Open Women's: Tina Smith vs Cadence Brace Set Handicap +/-1.5",
+        "groupItemThreshold": "1",
+        "questionID": "0xad72f4a92e65d672f0e744da70bc9c20b3605bad4382448ec9a5da2d2599b1fe",
+        "umaEndDate": "2026-01-12T06:02:00Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 30.58,
+        "liquidityNum": 0,
+        "endDateIso": "2026-01-25",
+        "startDateIso": "2026-01-11",
+        "hasReviewedDates": true,
+        "gameStartTime": "2026-01-11 23:00:00+00",
+        "secondsDelay": 3,
+        "clobTokenIds": "[\"91959313615118202599106683543036834969862802020731336901738798741224824939514\", \"62638636539120478220589625098536175833291142862261834661597439782794622806561\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volumeClob": 30.58,
+        "liquidityAmm": 0,
+        "liquidityClob": 0,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-01-11T18:26:24Z",
+        "cyom": false,
+        "competitive": 0,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 0,
+        "rewardsMaxSpread": 0,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "oneDayPriceChange": -0.505,
+        "bestAsk": 0.001,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_set_handicap",
+        "line": 1.5,
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-01-11T18:09:46.41528Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": false,
+        "requiresTranslation": false,
+        "feeType": null,
+        "version": "v1"
+      }
+    ]
+  negRisk = false
+  negRiskAugmented = false
+  new = false
+  openInterest = 0
+  pendingDeployment = false
+  requiresTranslation = false
+  resolutionSource = "https://ausopen.com/"
+  restricted = true
+  series:
+    [
+      {
+        "id": "10366",
+        "ticker": "wta",
+        "slug": "wta",
+        "title": "WTA",
+        "seriesType": "single",
+        "recurrence": "daily",
+        "image": "",
+        "icon": "",
+        "active": true,
+        "closed": false,
+        "archived": false,
+        "featured": false,
+        "restricted": true,
+        "createdAt": "2025-10-07T17:08:50.305974Z",
+        "updatedAt": "2026-08-03T07:15:26.581358Z",
+        "volume24hr": 4411487.322377001,
+        "volume": 2402873.7118690014,
+        "liquidity": 4053336.47238,
+        "commentCount": 1264,
+        "requiresTranslation": false
+      }
+    ]
+  seriesSlug = "wta"
+  showAllOutcomes = true
+  showMarketImages = false
+  slug = "wta-smith-brace-2026-01-11"
+  startDate = "2026-01-11T17:11:08.099062Z"
+  startTime = "2026-01-11T23:00:00Z"
+  tags:
+    [
+      {
+        "id": "864",
+        "label": "Tennis",
+        "slug": "tennis",
+        "forceShow": false,
+        "publishedAt": "2024-01-12 19:45:09.662+00",
+        "createdAt": "2024-01-12T19:45:09.677Z",
+        "updatedAt": "2026-04-17T20:48:44.296144Z",
+        "requiresTranslation": false
+      },
+      {
+        "id": "1",
+        "label": "Sports",
+        "slug": "sports",
+        "forceShow": false,
+        "publishedAt": "2023-10-24 22:37:50.296+00",
+        "updatedBy": 15,
+        "createdAt": "2023-10-24T22:37:50.31Z",
+        "updatedAt": "2026-04-17T20:47:16.461062Z",
+        "forceHide": true,
+        "requiresTranslation": false
+      },
+      {
+        "id": "100639",
+        "label": "Games",
+        "slug": "games",
+        "forceShow": false,
+        "createdAt": "2024-09-23T22:41:37.670714Z",
+        "updatedAt": "2026-03-09T22:28:03.358133Z",
+        "requiresTranslation": false
+      }
+    ]
+  ticker = "wta-smith-brace-2026-01-11"
+  title = "Australian Open Women's: Tina Smith vs Cadence Brace"
+  updatedAt = "2026-01-13T08:21:25.069348Z"
+  version = "v1"
+  volume = 14343.416477
+  volume1mo = 11157.345477
+  volume1wk = 11157.345477
+  volume1yr = 11157.345477
+
+------------------------------------------------------------------------
+POLYA RYNKA (match market) (81 poley)
+------------------------------------------------------------------------
+  acceptingOrders = false
+  acceptingOrdersTimestamp = "2026-01-11T17:10:12Z"
+  active = true
+  approved = true
+  archived = false
+  automaticallyActive = true
+  automaticallyResolved = true
+  bestAsk = 1
+  bestBid = 0.999
+  clearBookOnStart = true
+  clobTokenIds = "[\"29940936148069770455306208241531372143353786347773296501068221638077954708605\", \"114207912390550195485904938148054763774037869372355769378290064841100673241129\"]"
+  closed = true
+  closedTime = "2026-01-12 06:00:56+00"
+  comboStatus = "disabled"
+  conditionId = "0x7558223e4ba1da845c4a27ef614ed25197e728360b031028504e2d4dc1d44999"
+  createdAt = "2026-01-11T17:00:41.432102Z"
+  customLiveness = 0
+  cyom = false
+  deploying = false
+  deployingTimestamp = "2026-01-11T17:00:54.77798Z"
+  description = "This market refers on the tennis match between Tina Smith and Cadence Brace in the Australian Open, Qualification WTA, scheduled for January 11 at 6:00PM ET.\n\nThis market will resolve to 'Smith' if Tina Smith advances against Cadence Brace.\n\nThis market will resolve to 'Brace' if Cadence Brace advances against Tina Smith.\n\nIf the match is canceled (not played at all), ends in a tie, or is delayed beyond 7 days from the scheduled date without a winner determined, this market will resolve to 50-50.\n\nIf the match begins but is not completed, and one player advances due to the opponent's retirement, default, or disqualification, this market will resolve to the player who advances.\n\nIf the match ends in a walkover (player withdraws before the start and the other advances automatically), this market will resolve to 50-50.\n\nThe primary resolution source will be official information from the Australian Open. A consensus of credible reporting may also be used."
+  enableOrderBook = true
+  endDate = "2026-01-25T23:00:00Z"
+  endDateIso = "2026-01-25"
+  featured = false
+  feeType = null
+  feesEnabled = false
+  funded = false
+  gameStartTime = "2026-01-11 23:00:00+00"
+  groupItemThreshold = "0"
+  hasReviewedDates = true
+  holdingRewardsEnabled = false
+  icon = "https://polymarket-upload.s3.us-east-2.amazonaws.com/australian-open-f3747f3ad1.png"
+  id = "1160575"
+  image = "https://polymarket-upload.s3.us-east-2.amazonaws.com/australian-open-f3747f3ad1.png"
+  lastTradePrice = 0.999
+  manualActivation = false
+  marketMakerAddress = ""
+  negRisk = false
+  negRiskOther = false
+  negRiskRequestID = ""
+  new = false
+  orderMinSize = 5
+  orderPriceMinTickSize = 0.001
+  outcomePrices = "[\"1\", \"0\"]"
+  outcomes = "[\"Smith\", \"Brace\"]"
+  pagerDutyNotificationEnabled = false
+  pendingDeployment = false
+  question = "Australian Open Women's: Tina Smith vs Cadence Brace"
+  questionID = "0xbd578c355d864a3d99576609c5b7cdbe8fe489ae4dd8dc4967361ec6e72cb3b6"
+  ready = false
+  requiresTranslation = false
+  resolutionSource = "https://ausopen.com/"
+  resolvedBy = "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7"
+  restricted = true
+  rewardsMaxSpread = 0
+  rewardsMinSize = 0
+  rfqEnabled = false
+  secondsDelay = 3
+  slug = "wta-smith-brace-2026-01-11"
+  sportsMarketType = "moneyline"
+  spread = 0.001
+  startDate = "2026-01-11T17:10:35.379624Z"
+  startDateIso = "2026-01-11"
+  submitted_by = "0x91430CaD2d3975766499717fA0D66A78D814E5c5"
+  umaBond = "500"
+  umaEndDate = "2026-01-12T06:00:56Z"
+  umaResolutionStatus = "resolved"
+  umaResolutionStatuses = "[\"proposed\"]"
+  umaReward = "2"
+  updatedAt = "2026-01-13T08:21:15.5855Z"
+  version = "v1"
+  volume = "10381.986177"
+  volume1mo = 10381.986177
+  volume1moClob = 10381.986177
+  volume1wk = 10381.986177
+  volume1wkClob = 10381.986177
+  volume1yr = 10381.986177
+  volume1yrClob = 10381.986177
+  volumeClob = 10381.986177
+  volumeNum = 10381.986177
+
+########################################################################
+# DAMP SOBYTIYA: ITF
+########################################################################
+
+------------------------------------------------------------------------
+POLYA SOBYTIYA (event) (46 poley)
+------------------------------------------------------------------------
+  active = true
+  archived = false
+  automaticallyActive = true
+  automaticallyResolved = true
+  closed = true
+  closedTime = "2026-05-25T14:20:18Z"
+  commentCount = 0
+  createdAt = "2026-05-25T02:26:58.838854Z"
+  creationDate = "2026-05-25T06:30:00Z"
+  cyom = false
+  deploying = false
+  description = "This market refers to the tennis match between Alana Subasic and Irem Kurt in the ITF Women Kayseri, originally scheduled for May 25, 2026 at 2:30AM ET.\n\nThis market will resolve to 'Alana Subasic' if Alana Subasic advances against Irem Kurt.\n\nThis market will resolve to 'Irem Kurt' if Irem Kurt advances against Alana Subasic.\n\nIf the match is canceled (not played at all), ends in a tie, or is delayed beyond 7 days from the scheduled date without a winner determined, this market will resolve to 50-50.\n\nIf the match begins but is not completed, and one player advances due to the opponent's retirement, default, or disqualification, this market will resolve to the player who advances.\n\nIf the match ends in a walkover (player withdraws before the start and the other advances automatically), this market will resolve to 50-50.\n\nThe primary resolution source will be official information from the International Tennis Federation (ITF). A consensus of credible reporting may also be used."
+  enableNegRisk = false
+  enableOrderBook = true
+  endDate = "2026-06-01T06:30:00Z"
+  eventDate = "2026-05-25"
+  eventMetadata:
+    {
+      "context_description": "Alana Subasic holds a clear edge in this ITF W15 Kayseri final on hard courts, backed by her WTA ranking near 420 and stronger recent results in the event. She has advanced convincingly, dropping sets sparingly while posting straight-set wins over players including Marie Villet and Ilay Yoruk. Irem Kurt, an 18-year-old Turkish player, reached the final with a solid run highlighted by a straight-sets victory over Demi Tran but trails in overall experience and ranking. The pair met twice in prior Kayseri editions, with Subasic prevailing both times. No major injury concerns have surfaced for either player ahead of the May 25 start.",
+      "context_requires_regen": true,
+      "context_updated_at": "2026-05-25T13:33:57.330Z",
+      "league": "ITF Kayseri"
+    }
+  featured = false
+  gameId = 1631328939
+  icon = "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png"
+  id = "522031"
+  image = "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png"
+  markets:
+    [
+      {
+        "id": "2349844",
+        "question": "ITF Kayseri: Alana Subasic vs Irem Kurt",
+        "conditionId": "0x52c7244fb6bbba88f5026ed7b3e61701206b9fbec59c4732f75c4a1f072c2490",
+        "slug": "itf-subasic-kurt-2026-05-25",
+        "resolutionSource": "https://www.itftennis.com/en/tournament-calendar/",
+        "endDate": "2026-06-01T06:30:00Z",
+        "startDate": "2026-05-25T02:29:21.869886Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png",
+        "description": "This market refers to the tennis match between Alana Subasic and Irem Kurt in the ITF Women Kayseri, originally scheduled for May 25, 2026 at 2:30AM ET.\n\nThis market will resolve to 'Alana Subasic' if Alana Subasic advances against Irem Kurt.\n\nThis market will resolve to 'Irem Kurt' if Irem Kurt advances against Alana Subasic.\n\nIf the match is canceled (not played at all), ends in a tie, or is delayed beyond 7 days from the scheduled date without a winner determined, this market will resolve to 50-50.\n\nIf the match begins but is not completed, and one player advances due to the opponent's retirement, default, or disqualification, this market will resolve to the player who advances.\n\nIf the match ends in a walkover (player withdraws before the start and the other advances automatically), this market will resolve to 50-50.\n\nThe primary resolution source will be official information from the International Tennis Federation (ITF). A consensus of credible reporting may also be used.",
+        "outcomes": "[\"Alana Subasic\", \"Irem Kurt\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "30775.350833999997",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-05-25T02:26:59.040701Z",
+        "updatedAt": "2026-05-26T13:49:05.640197Z",
+        "closedTime": "2026-05-25 14:18:42+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0xF43d55F3A8B7484Ed4B6931f93CB6F9eF5Dd369D",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemThreshold": "0",
+        "questionID": "0x2743efa3b095ea4f585146e0c8eda285c1ec6b66fa2ad9359c75a5eafbc09f90",
+        "umaEndDate": "2026-05-25T14:18:42Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 30775.350833999997,
+        "endDateIso": "2026-06-01",
+        "startDateIso": "2026-05-25",
+        "hasReviewedDates": true,
+        "gameStartTime": "2026-05-25 06:30:00+00",
+        "secondsDelay": 1,
+        "clobTokenIds": "[\"110547184009858377503444586014405915045933448231979811608555137549422905764060\", \"31849504561881607487253917637930942558861325358459741887726094542561774066098\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volumeClob": 30775.350833999997,
+        "makerBaseFee": 1000,
+        "takerBaseFee": 1000,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-05-25T02:28:26Z",
+        "cyom": false,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 50,
+        "rewardsMaxSpread": 4.5,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "lastTradePrice": 0.999,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "moneyline",
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-05-25T02:27:17.344521Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": true,
+        "requiresTranslation": false,
+        "feeType": "sports_fees_v2",
+        "feeSchedule": {
+          "exponent": 1,
+          "rate": 0.05,
+          "takerOnly": true,
+          "rebateRate": 0.15
+        },
+        "version": "v1"
+      },
+      {
+        "id": "2349845",
+        "question": "ITF Women Kayseri: Completed Match: Alana Subasic vs Irem Kurt",
+        "conditionId": "0x1d53af030685b3f46f9bb5684291c322a2671aed6f4eb80981b421a20a1ae4cd",
+        "slug": "itf-subasic-kurt-2026-05-25-completed-match",
+        "resolutionSource": "https://www.itftennis.com/en/tournament-calendar/",
+        "endDate": "2026-06-01T06:30:00Z",
+        "startDate": "2026-05-25T02:29:20.048523Z",
+        "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png",
+        "icon": "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png",
+        "description": "This market refers to the tennis match between Alana Subasic and Irem Kurt in the ITF Women Kayseri, originally scheduled for May 25, 2026 at 2:30AM ET. This market will resolve to \"Yes\" if all games and sets required to determine a match winner under governing body or event organizer rules are played to completion through normal play. Otherwise, if the match is not completed for any reason, it will resolve to \"No.\" If a forfeit of any kind occurs, including but not limited to a walkover or retirement, this market will resolve \"No.\" If the match is canceled (not played at all), ends in a tie, or is delayed beyond 7 days from the scheduled date without a winner determined, this market will resolve to \"No.\" The primary resolution source for this market is the official statistics of the event as recognized by the governing body or event organizers. However, if the governing body or event organizers have not published final match statistics within 2 hours after the event's conclusion, a consensus of credible reporting may be used instead.",
+        "outcomes": "[\"Yes\", \"No\"]",
+        "outcomePrices": "[\"1\", \"0\"]",
+        "volume": "18.1809",
+        "active": true,
+        "closed": true,
+        "marketMakerAddress": "",
+        "createdAt": "2026-05-25T02:26:59.365522Z",
+        "updatedAt": "2026-05-26T11:38:19.353038Z",
+        "closedTime": "2026-05-25 14:20:18+00",
+        "new": false,
+        "featured": false,
+        "submitted_by": "0xF43d55F3A8B7484Ed4B6931f93CB6F9eF5Dd369D",
+        "archived": false,
+        "resolvedBy": "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7",
+        "restricted": true,
+        "groupItemTitle": "Completed Match",
+        "groupItemThreshold": "1",
+        "questionID": "0x2379d1d243f0c849d69ed38e9e8f20779d98e2fe5458ce0c67fc69fca8839bbe",
+        "umaEndDate": "2026-05-25T14:20:18Z",
+        "enableOrderBook": true,
+        "orderPriceMinTickSize": 0.001,
+        "orderMinSize": 5,
+        "umaResolutionStatus": "resolved",
+        "volumeNum": 18.1809,
+        "endDateIso": "2026-06-01",
+        "startDateIso": "2026-05-25",
+        "hasReviewedDates": true,
+        "gameStartTime": "2026-05-25 06:30:00+00",
+        "secondsDelay": 1,
+        "clobTokenIds": "[\"61746034936437747869621155465427830367390424274507566381814499797577994492856\", \"55097746560649682891252331104463286404243129145256526765174129656375036170025\"]",
+        "comboStatus": "disabled",
+        "umaBond": "500",
+        "umaReward": "2",
+        "volumeClob": 18.1809,
+        "makerBaseFee": 1000,
+        "takerBaseFee": 1000,
+        "customLiveness": 0,
+        "acceptingOrders": false,
+        "negRisk": false,
+        "negRiskRequestID": "",
+        "ready": false,
+        "funded": false,
+        "acceptingOrdersTimestamp": "2026-05-25T02:28:24Z",
+        "cyom": false,
+        "pagerDutyNotificationEnabled": false,
+        "approved": true,
+        "rewardsMinSize": 50,
+        "rewardsMaxSpread": 4.5,
+        "spread": 0.001,
+        "automaticallyResolved": true,
+        "lastTradePrice": 0.999,
+        "bestBid": 0.999,
+        "bestAsk": 1,
+        "automaticallyActive": true,
+        "clearBookOnStart": true,
+        "manualActivation": false,
+        "negRiskOther": false,
+        "sportsMarketType": "tennis_completed_match",
+        "umaResolutionStatuses": "[\"proposed\"]",
+        "pendingDeployment": false,
+        "deploying": false,
+        "deployingTimestamp": "2026-05-25T02:27:17.341823Z",
+        "rfqEnabled": false,
+        "holdingRewardsEnabled": false,
+        "feesEnabled": true,
+        "requiresTranslation": false,
+        "feeType": "sports_fees_v2",
+        "feeSchedule": {
+          "exponent": 1,
+          "rate": 0.05,
+          "takerOnly": true,
+          "rebateRate": 0.15
+        },
+        "version": "v1"
+      }
+    ]
+  negRisk = false
+  negRiskAugmented = false
+  new = false
+  openInterest = 11895.93984
+  pendingDeployment = false
+  requiresTranslation = false
+  resolutionSource = "https://www.itftennis.com/en/tournament-calendar/"
+  restricted = true
+  series:
+    [
+      {
+        "id": "11634",
+        "ticker": "itf",
+        "slug": "itf",
+        "title": "ITF",
+        "seriesType": "single",
+        "recurrence": "daily",
+        "image": "",
+        "icon": "",
+        "active": true,
+        "closed": false,
+        "archived": false,
+        "createdAt": "2026-05-13T17:45:39.141884Z",
+        "updatedAt": "2026-08-03T07:15:26.581358Z",
+        "volume24hr": 477312.684183,
+        "volume": 54065.866996000004,
+        "liquidity": 19286.43217,
+        "commentCount": 99,
+        "requiresTranslation": false
+      }
+    ]
+  seriesSlug = "itf"
+  showAllOutcomes = true
+  showMarketImages = false
+  slug = "itf-subasic-kurt-2026-05-25"
+  sport:
+    {
+      "id": 187,
+      "sport": "itf",
+      "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/atp-tour-b4390c4fb8.jpg",
+      "resolution": "https://www.itftennis.com/en/tournament-calendar/",
+      "ordering": "home",
+      "tags": "1,864,100639",
+      "series": "11634",
+      "createdAt": "2026-05-13T20:41:54.626687Z"
+    }
+  startDate = "2026-05-25T02:40:13.533396Z"
+  startTime = "2026-05-25T06:30:00Z"
+  tags:
+    [
+      {
+        "id": "864",
+        "label": "Tennis",
+        "slug": "tennis",
+        "forceShow": false,
+        "publishedAt": "2024-01-12 19:45:09.662+00",
+        "createdAt": "2024-01-12T19:45:09.677Z",
+        "updatedAt": "2026-04-17T20:48:44.296144Z",
+        "requiresTranslation": false
+      },
+      {
+        "id": "1",
+        "label": "Sports",
+        "slug": "sports",
+        "forceShow": false,
+        "publishedAt": "2023-10-24 22:37:50.296+00",
+        "updatedBy": 15,
+        "createdAt": "2023-10-24T22:37:50.31Z",
+        "updatedAt": "2026-04-17T20:47:16.461062Z",
+        "forceHide": true,
+        "requiresTranslation": false
+      },
+      {
+        "id": "100639",
+        "label": "Games",
+        "slug": "games",
+        "forceShow": false,
+        "createdAt": "2024-09-23T22:41:37.670714Z",
+        "updatedAt": "2026-03-09T22:28:03.358133Z",
+        "requiresTranslation": false
+      }
+    ]
+  teams:
+    [
+      {
+        "id": 3273185,
+        "name": "Alana Subasic",
+        "league": "itf",
+        "record": "0-0",
+        "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/country-flags/au.png",
+        "abbreviation": "subasic",
+        "createdAt": "2026-05-19T22:00:01.843712Z",
+        "updatedAt": "2026-05-31T09:00:03.793474Z",
+        "providerId": 2141782110,
+        "color": "#07217B",
+        "ordering": "home"
+      },
+      {
+        "id": 3272493,
+        "name": "Irem Kurt",
+        "league": "itf",
+        "record": "0-0",
+        "logo": "https://polymarket-upload.s3.us-east-2.amazonaws.com/country-flags/tr.png",
+        "abbreviation": "kurt",
+        "createdAt": "2026-05-18T22:00:01.331947Z",
+        "updatedAt": "2026-05-22T01:30:20.66935Z",
+        "providerId": 885798884,
+        "color": "#d12d24",
+        "ordering": "away"
+      }
+    ]
+  ticker = "itf-subasic-kurt-2026-05-25"
+  title = "ITF Kayseri: Alana Subasic vs Irem Kurt"
+  updatedAt = "2026-08-02T18:25:59.007812Z"
+  version = "v1"
+  volume = 30793.531733999997
+
+------------------------------------------------------------------------
+POLYA RYNKA (match market) (78 poley)
+------------------------------------------------------------------------
+  acceptingOrders = false
+  acceptingOrdersTimestamp = "2026-05-25T02:28:26Z"
+  active = true
+  approved = true
+  archived = false
+  automaticallyActive = true
+  automaticallyResolved = true
+  bestAsk = 1
+  bestBid = 0.999
+  clearBookOnStart = true
+  clobTokenIds = "[\"110547184009858377503444586014405915045933448231979811608555137549422905764060\", \"31849504561881607487253917637930942558861325358459741887726094542561774066098\"]"
+  closed = true
+  closedTime = "2026-05-25 14:18:42+00"
+  comboStatus = "disabled"
+  conditionId = "0x52c7244fb6bbba88f5026ed7b3e61701206b9fbec59c4732f75c4a1f072c2490"
+  createdAt = "2026-05-25T02:26:59.040701Z"
+  customLiveness = 0
+  cyom = false
+  deploying = false
+  deployingTimestamp = "2026-05-25T02:27:17.344521Z"
+  description = "This market refers to the tennis match between Alana Subasic and Irem Kurt in the ITF Women Kayseri, originally scheduled for May 25, 2026 at 2:30AM ET.\n\nThis market will resolve to 'Alana Subasic' if Alana Subasic advances against Irem Kurt.\n\nThis market will resolve to 'Irem Kurt' if Irem Kurt advances against Alana Subasic.\n\nIf the match is canceled (not played at all), ends in a tie, or is delayed beyond 7 days from the scheduled date without a winner determined, this market will resolve to 50-50.\n\nIf the match begins but is not completed, and one player advances due to the opponent's retirement, default, or disqualification, this market will resolve to the player who advances.\n\nIf the match ends in a walkover (player withdraws before the start and the other advances automatically), this market will resolve to 50-50.\n\nThe primary resolution source will be official information from the International Tennis Federation (ITF). A consensus of credible reporting may also be used."
+  enableOrderBook = true
+  endDate = "2026-06-01T06:30:00Z"
+  endDateIso = "2026-06-01"
+  featured = false
+  feeSchedule:
+    {
+      "exponent": 1,
+      "rate": 0.05,
+      "takerOnly": true,
+      "rebateRate": 0.15
+    }
+  feeType = "sports_fees_v2"
+  feesEnabled = true
+  funded = false
+  gameStartTime = "2026-05-25 06:30:00+00"
+  groupItemThreshold = "0"
+  hasReviewedDates = true
+  holdingRewardsEnabled = false
+  icon = "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png"
+  id = "2349844"
+  image = "https://polymarket-upload.s3.us-east-2.amazonaws.com/itf-5206dc6c54.png"
+  lastTradePrice = 0.999
+  makerBaseFee = 1000
+  manualActivation = false
+  marketMakerAddress = ""
+  negRisk = false
+  negRiskOther = false
+  negRiskRequestID = ""
+  new = false
+  orderMinSize = 5
+  orderPriceMinTickSize = 0.001
+  outcomePrices = "[\"1\", \"0\"]"
+  outcomes = "[\"Alana Subasic\", \"Irem Kurt\"]"
+  pagerDutyNotificationEnabled = false
+  pendingDeployment = false
+  question = "ITF Kayseri: Alana Subasic vs Irem Kurt"
+  questionID = "0x2743efa3b095ea4f585146e0c8eda285c1ec6b66fa2ad9359c75a5eafbc09f90"
+  ready = false
+  requiresTranslation = false
+  resolutionSource = "https://www.itftennis.com/en/tournament-calendar/"
+  resolvedBy = "0x65070BE91477460D8A7AeEb94ef92fe056C2f2A7"
+  restricted = true
+  rewardsMaxSpread = 4.5
+  rewardsMinSize = 50
+  rfqEnabled = false
+  secondsDelay = 1
+  slug = "itf-subasic-kurt-2026-05-25"
+  sportsMarketType = "moneyline"
+  spread = 0.001
+  startDate = "2026-05-25T02:29:21.869886Z"
+  startDateIso = "2026-05-25"
+  submitted_by = "0xF43d55F3A8B7484Ed4B6931f93CB6F9eF5Dd369D"
+  takerBaseFee = 1000
+  umaBond = "500"
+  umaEndDate = "2026-05-25T14:18:42Z"
+  umaResolutionStatus = "resolved"
+  umaResolutionStatuses = "[\"proposed\"]"
+  umaReward = "2"
+  updatedAt = "2026-05-26T13:49:05.640197Z"
+  version = "v1"
+  volume = "30775.350833999997"
+  volumeClob = 30775.350833999997
+  volumeNum = 30775.350833999997
+
+========================================================================
+ANALIZ: EST LI POLE DLYA SVYAZYVANIYA MATCHey ODRogo TURNIRA?
+========================================================================
+
+  Polya sobytiy (49): active, archived, automaticallyActive, automaticallyResolved, closed, closedTime, commentCount, createdAt, creationDate, cyom, deploying, description, enableNegRisk, enableOrderBook, endDate, eventDate, eventMetadata, featured, gameId, icon, id, image, markets, negRisk, negRiskAugmented, new, openInterest, pendingDeployment, requiresTranslation, resolutionSource, restricted, series, seriesSlug, showAllOutcomes, showMarketImages, slug, sport, startDate, startTime, tags, teams, ticker, title, updatedAt, version, volume, volume1mo, volume1wk, volume1yr
+  Polya rynkov (85): acceptingOrders, acceptingOrdersTimestamp, active, approved, archived, automaticallyActive, automaticallyResolved, bestAsk, bestBid, clearBookOnStart, clobTokenIds, closed, closedTime, comboStatus, conditionId, createdAt, customLiveness, cyom, deploying, deployingTimestamp, description, enableOrderBook, endDate, endDateIso, featured, feeSchedule, feeType, feesEnabled, funded, gameStartTime, groupItemThreshold, hasReviewedDates, holdingRewardsEnabled, icon, id, image, lastTradePrice, makerBaseFee, manualActivation, marketMakerAddress, negRisk, negRiskOther, negRiskRequestID, new, oneHourPriceChange, orderMinSize, orderPriceMinTickSize, outcomePrices, outcomes, pagerDutyNotificationEnabled, pendingDeployment, question, questionID, ready, requiresTranslation, resolutionSource, resolvedBy, restricted, rewardsMaxSpread, rewardsMinSize, rfqEnabled, secondsDelay, slug, sportsMarketType, spread, startDate, startDateIso, submitted_by, takerBaseFee, umaBond, umaEndDate, umaResolutionStatus, umaResolutionStatuses, umaReward, updatedAt, version, volume, volume1mo, volume1moClob, volume1wk, volume1wkClob, volume1yr, volume1yrClob, volumeClob, volumeNum
+
+  Imita poley-kandidatov (kluchevye slova): ['groupItemThreshold', 'series', 'seriesSlug']
+
+  TAGS kazhdogo sobytiya:
+    ATP: ['tennis', 'sports', 'games']
+    WTA: ['tennis', 'sports', 'games']
+    ITF: ['tennis', 'sports', 'games']
+
+  TICKER kazhdogo sobytiya:
+    ATP: ticker = "atp-engel-loffhag-2026-01-11"
+    WTA: ticker = "wta-smith-brace-2026-01-11"
+    ITF: ticker = "itf-subasic-kurt-2026-05-25"
+
+========================================================================
+SRVNENIE: DVA MATCHA ODRogo TURNIRA
+========================================================================
+  Match 1: ATX Open, Qualification: Nikola Bartunkova vs Mariia Tkacheva
+  Match 2: ATX Open, Qualification: Emily Appleton vs Louisa Chirico
+  KONTROL (drugoy turnir): Australian Open Men's: Justin Engel vs George Loffhagen
+
+  SOVPADAYUT, NETRIVIALNYE (12) тАФ kandidaty na klyuch turnira:
+    creationDate = "2026-02-21T16:00:00Z"
+    endDate = "2026-02-28T16:00:00Z"
+    ended = true
+    eventDate = "2026-02-21"
+    icon = "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png"
+    image = "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png"
+    period = "FT"
+    resolutionSource = "https://www.wtatennis.com/scores"
+    series = [{"id": "10366", "ticker": "wta", "slug": "wta", "title": "WTA", "seriesType": "single", "recurrence": "daily", "image": "", "icon": "", "active": true, "closed": false, "archived": false, "featured": false, "restricted": true, "createdAt": "2025-10-07T17:08:50.305974Z", "updatedAt": "2026-08-03T07:...
+    seriesSlug = "wta"
+    sport = {"id": 46, "sport": "wta", "image": "https://polymarket-upload.s3.us-east-2.amazonaws.com/wta-logo-41f331bdf1.png", "resolution": "https://www.wtatennis.com/scores", "ordering": "home", "tags": "1,864,100639,102123", "series": "10366", "createdAt": "2025-11-07T21:09:26.309189Z"}
+    startTime = "2026-02-21T16:00:00Z"
+
+  SOVPADAYUT, TRIVIALNYE (23): active, archived, automaticallyActive, automaticallyResolved, closed, commentCount, cyom, deploying, enableNegRisk, enableOrderBook, featured, live, negRisk, negRiskAugmented, new, openInterest, pendingDeployment, requiresTranslation, restricted, showAllOutcomes, showMarketImages, tags, version
+  RAZLICHAYUTSYA (18): closedTime, createdAt, description, finishedTimestamp, gameId, id, markets, score, slug, startDate, teams, ticker, title, updatedAt, volume, volume1mo, volume1wk, volume1yr
+
+========================================================================
+OTVET
+========================================================================
+  Polya s imenami-kandidatami naydeny: ['groupItemThreshold', 'series', 'seriesSlug']
+    ATP.groupItemThreshold = "0"
+    ATP.series = [{"id": "10365", "ticker": "atp", "slug": "atp", "title": "ATP", "seriesType": "single", "recurrence": "daily", "image": "", "icon": "", "active": true, "closed": false, "archived": false, "featured": false, "restricted": true, "createdAt": "2025-10-07T17:08:06.009679Z", "updatedAt": "2026-08-03T07:15:26.581358Z", "volume24hr": 4085236.1825019987, "volume": 2370376.629342, "liquidity": 8034997.09957, "commentCount": 3158, "requiresTranslation": false}]
+    ATP.seriesSlug = "atp"
+    WTA.groupItemThreshold = "0"
+    WTA.series = [{"id": "10366", "ticker": "wta", "slug": "wta", "title": "WTA", "seriesType": "single", "recurrence": "daily", "image": "", "icon": "", "active": true, "closed": false, "archived": false, "featured": false, "restricted": true, "createdAt": "2025-10-07T17:08:50.305974Z", "updatedAt": "2026-08-03T07:15:26.581358Z", "volume24hr": 4411487.322377001, "volume": 2402873.7118690014, "liquidity": 4053336.47238, "commentCount": 1264, "requiresTranslation": false}]
+    WTA.seriesSlug = "wta"
+    ITF.groupItemThreshold = "0"
+    ITF.series = [{"id": "11634", "ticker": "itf", "slug": "itf", "title": "ITF", "seriesType": "single", "recurrence": "daily", "image": "", "icon": "", "active": true, "closed": false, "archived": false, "createdAt": "2026-05-13T17:45:39.141884Z", "updatedAt": "2026-08-03T07:15:26.581358Z", "volume24hr": 477312.684183, "volume": 54065.866996000004, "liquidity": 19286.43217, "commentCount": 99, "requiresTranslation": false}]
+    ITF.seriesSlug = "itf"
+
+  Dva matcha odnogo turnira imeyut SOVPADAYUSCHIE
+  netrivialnye polya (kandidaty na klyuch turnira):
+    - creationDate
+    - endDate
+    - ended
+    - eventDate
+    - icon
+    - image
+    - period
+    - resolutionSource
+    - series
+    - seriesSlug
+    - sport
+    - startTime
+
+  ETO potentialno goditsya, no prover'te kachestvo:
+  naprimer, odinakovyy URL ikonki ne yavlyaetsya nadyozhnym ID.
+
+========================================================================
+GOTOVO.
+Raw API log -> C:\Users\awf\Desktop\test\probes\glm\probe3_raw_api.log
+========================================================================
