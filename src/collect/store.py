@@ -11,13 +11,39 @@ Parquet: сырой архив, партиция по дате (UTC). Для с�
 
 from __future__ import annotations
 
+import logging
+import queue
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any, Callable, Iterable, Sequence
 
 import duckdb
+import pyarrow as pa
 
 from . import schema
+
+log = logging.getLogger("collect.store")
+
+# Маппинг duckdb-типов замороженной схемы на типы pyarrow для пачечной
+# вставки через Arrow (см. StoreWriter._flush). duckdb.executemany со
+# списком списков делает ленивый `import pandas` и при его отсутствии
+# зацикливается — поэтому пишем через Arrow, а не executemany.
+_PA_TYPE_MAP: dict[str, pa.DataType] = {
+    "BIGINT": pa.int64(),
+    "INTEGER": pa.int32(),
+    "DOUBLE": pa.float64(),
+    "TEXT": pa.string(),
+    "BOOLEAN": pa.bool_(),
+}
+
+_TMP_TABLE = "__collector_flush"
+
+
+def _pa_type_for(col_type: str) -> pa.DataType | None:
+    """Тип pyarrow для duckdb-типа колонки (базовое слово до NOT NULL)."""
+    base = col_type.split()[0]
+    return _PA_TYPE_MAP.get(base)
 
 DEFAULT_DB_PATH = Path("data") / "pm.duckdb"
 DEFAULT_EXPORT_ROOT = Path("data") / "collect"
@@ -50,6 +76,262 @@ def connect(db_path: Path = DEFAULT_DB_PATH) -> duckdb.DuckDBPyConnection:
     return con
 
 
+class StoreWriter:
+    """Поток-писатель: приём только кладёт строки в очередь.
+
+    Цикл событий не трогает duckdb: submit_row / submit_call не блокируют.
+    Отдельный поток владеет соединением, копит строки и пишет их пачками
+    в одной транзакции. call() — синхронное чтение/команда в этом потоке
+    (для редких вызовов: старт/стоп сессии, экспорт, MAX(seq)).
+
+    Гарантии:
+    - порядок между строками и командами одного потока-отправителя
+      сохраняется (единая FIFO-очередь);
+    - перед любой командой (call/submit_call) накопленная пачка
+      сбрасывается в базу, поэтому чтения видят предыдущие записи;
+    - INSERT OR IGNORE + PRIMARY KEY даёт идемпотентность, как и раньше.
+    """
+
+    def __init__(
+        self,
+        db_path: Path = DEFAULT_DB_PATH,
+        *,
+        batch: int = 256,
+        flush_interval_s: float = 0.1,
+    ) -> None:
+        self._db_path = Path(db_path)
+        self._batch = batch
+        self._queue: queue.Queue[Any] = queue.Queue()
+        self._thread = threading.Thread(
+            target=self._run, name="store-writer", daemon=True
+        )
+        self._thread.start()
+
+    # ---- публичный интерфейс (не блокирует цикл событий) ----
+
+    def submit_row(self, table: str, row: dict[str, Any]) -> None:
+        """Очередная строка (INSERT OR IGNORE). Не блокирует."""
+        self._queue.put(("row", table, row))
+
+    def submit_call(
+        self,
+        fn: Callable[..., Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        """Команда в потоке-писателе (например, export_tables). Не блокирует."""
+        self._queue.put(("call", fn, args, kwargs))
+
+    def call(
+        self,
+        fn: Callable[..., Any],
+        *args: Any,
+        **kwargs: Any,
+    ) -> Any:
+        """Синхронно выполняет fn(con, *args, **kwargs) в потоке-писателе.
+        Блокирует вызывающий поток. Ошибки внутри fn пробрасываются."""
+        result: dict[str, Any] = {}
+        done = threading.Event()
+        self._queue.put(("sync", fn, args, kwargs, result, done))
+        done.wait()
+        if "error" in result:
+            raise result["error"]
+        return result.get("value")
+
+    def flush(self) -> None:
+        """Блокирует, пока все ранее поставленные строки не уйдут в базу."""
+        self.call(lambda con: None)
+
+    def close(self) -> None:
+        """Сброс пачки, остановка потока, закрытие соединения."""
+        self._queue.put(None)
+        self._thread.join(timeout=30.0)
+
+    # ---- поток-писатель ----
+
+    def _run(self) -> None:
+        self._db_path.parent.mkdir(parents=True, exist_ok=True)
+        con = duckdb.connect(str(self._db_path))
+        con.execute(build_ddl())
+        try:
+            batch: list[tuple[str, dict[str, Any]]] = []
+            while True:
+                try:
+                    item = self._queue.get(timeout=0.1)
+                except queue.Empty:
+                    if batch:
+                        self._flush_guarded(con, batch)
+                        batch = []
+                    continue
+                if item is None:
+                    self._flush_guarded(con, batch)
+                    break
+                op = item[0]
+                if op == "row":
+                    batch.append((item[1], item[2]))
+                    if len(batch) >= self._batch:
+                        self._flush_guarded(con, batch)
+                        batch = []
+                elif op == "call":
+                    self._flush_guarded(con, batch)
+                    batch = []
+                    _, fn, args, kwargs = item
+                    try:
+                        fn(con, *args, **kwargs)
+                    except Exception:  # noqa: BLE001 — поток должен жить
+                        log.exception("store-writer: call %s не выполнен", fn)
+                elif op == "sync":
+                    self._flush_guarded(con, batch)
+                    batch = []
+                    _, fn, args, kwargs, result, done = item
+                    try:
+                        result["value"] = fn(con, *args, **kwargs)
+                    except Exception as exc:  # noqa: BLE001
+                        result["error"] = exc
+                    finally:
+                        done.set()
+        finally:
+            con.close()
+
+    @staticmethod
+    def _flush_guarded(
+        con: duckdb.DuckDBPyConnection,
+        rows: list[tuple[str, dict[str, Any]]],
+    ) -> None:
+        """_flush с защитой от смерти потока: ошибка пачки НЕ роняет writer.
+
+        Поток-писатель должен жить: если _flush упадёт без обработки, все
+        последующие writer.call() (end_session, export в finally run()) будут
+        вечно ждать done.wait() — процесс не завершится по --minutes.
+        Потерянная пачка логируется, поток продолжает принимать новые.
+        """
+        try:
+            StoreWriter._flush(con, rows)
+        except Exception:  # noqa: BLE001 — поток должен жить
+            log.exception("store-writer: пачка из %d строк не записана", len(rows))
+
+    @staticmethod
+    def _flush(
+        con: duckdb.DuckDBPyConnection,
+        rows: list[tuple[str, dict[str, Any]]],
+    ) -> None:
+        if not rows:
+            return
+        by_table: dict[str, list[dict[str, Any]]] = {}
+        for table, row in rows:
+            by_table.setdefault(table, []).append(row)
+        con.execute("BEGIN TRANSACTION")
+        try:
+            for table, group in by_table.items():
+                cols: list[str] = []
+                seen: set[str] = set()
+                for r in group:
+                    for c in r:
+                        if c not in seen:
+                            seen.add(c)
+                            cols.append(c)
+                if not cols:
+                    continue
+                group = _dedupe_by_key(table, group)
+                if not group:
+                    continue
+                col_sql = ", ".join(cols)
+                _write_group_arrow(con, table, cols, group)
+            con.execute("COMMIT")
+        except Exception:
+            con.execute("ROLLBACK")
+            raise
+
+
+def _dedupe_by_key(
+    table: str, group: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Оставляет первую строку по естественному ключу (INSERT OR IGNORE).
+
+    Один INSERT ... SELECT из Arrow-таблицы не умеет игнорировать дубликаты
+    ВНУТРИ пачки (DuckDB бросает ConstraintException). executemany с
+    построчным INSERT OR IGNORE такие дубликаты пропускал. Пример: у
+    recon_checks ключ (token_id, seq) — локальный seq уникален в рамках
+    токена, поэтому ни одно сравнение не теряется даже при совпадении
+    ts_recv_ms у двух book-событий (ЗАДАЧА 3: "throw away nothing").
+    """
+    key_cols = schema.TABLES[table][1]
+    seen: set[tuple[Any, ...]] = set()
+    out: list[dict[str, Any]] = []
+    for r in group:
+        k = tuple(r.get(c) for c in key_cols)
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(r)
+    return out
+
+
+def _write_group_arrow(
+    con: duckdb.DuckDBPyConnection,
+    table: str,
+    cols: list[str],
+    group: list[dict[str, Any]],
+) -> None:
+    """INSERT OR IGNORE пачки через Arrow вместо duckdb.executemany.
+
+    Причина: duckdb.executemany со списком списков параметров при
+    отсутствии установленного pandas бесконечно повторяет `import pandas`
+    внутри C-кода и зависает (воспроизведено в 2026-08-02). Вставка через
+    зарегистрированную Arrow-таблицу этот путь не трогает и на 100k строк
+    занимает ~0.3s.
+
+    Регистрация идёт под фиксированным именем (_TMP_TABLE): соединение
+    принадлежит единственному потоку-писателю, конкурентной регистрации
+    с тем же именем быть не может.
+    """
+    table_spec = schema.TABLES[table]
+    col_types = table_spec[0]
+    arrays = []
+    for col in cols:
+        values = [r.get(col) for r in group]
+        pa_type = _pa_type_for(col_types[col]) if col in col_types else None
+        if pa_type is not None:
+            arrays.append(pa.array(values, type=pa_type))
+        else:
+            arrays.append(pa.array(values))
+    tbl = pa.Table.from_arrays(arrays, names=cols)
+    col_sql = ", ".join(cols)
+    con.register(_TMP_TABLE, tbl)
+    try:
+        con.execute(
+            f"INSERT OR IGNORE INTO {table} ({col_sql}) SELECT * FROM {_TMP_TABLE}"
+        )
+    finally:
+        con.unregister(_TMP_TABLE)
+
+
+class SyncWriter:
+    """Прямая синхронная запись (тесты и одиночные запуски).
+
+    Тот же интерфейс, что у StoreWriter, но без потока: каждая операция
+    выполняется немедленно на соединении вызывающего потока.
+    """
+
+    def __init__(self, con: duckdb.DuckDBPyConnection) -> None:
+        self._con = con
+
+    def submit_row(self, table: str, row: dict[str, Any]) -> None:
+        insert_row(self._con, table, row)
+
+    def submit_call(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
+        fn(self._con, *args, **kwargs)
+
+    def call(self, fn: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
+        return fn(self._con, *args, **kwargs)
+
+    def flush(self) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
 def table_exists(con: duckdb.DuckDBPyConnection, table: str) -> bool:
     row = con.execute(
         "SELECT 1 FROM duckdb_tables() WHERE table_name = ?", [table]
@@ -64,6 +346,24 @@ def current_seq(con: duckdb.DuckDBPyConnection, table: str, token_id: str) -> in
         [token_id],
     ).fetchone()
     return int(row[0]) + 1
+
+
+def current_seqs(
+    con: duckdb.DuckDBPyConnection,
+    table: str,
+    token_ids: Iterable[str],
+) -> dict[str, int]:
+    """{token_id: следующий seq} одним запросом (для prewarm до цикла приёма)."""
+    ids = [str(t) for t in token_ids]
+    if not ids:
+        return {}
+    placeholders = ", ".join("?" for _ in ids)
+    rows = con.execute(
+        f"SELECT token_id, COALESCE(MAX(seq), 0) + 1 "
+        f"FROM {table} WHERE token_id IN ({placeholders}) GROUP BY token_id",
+        ids,
+    ).fetchall()
+    return {str(r[0]): int(r[1]) for r in rows}
 
 
 def row_exists(

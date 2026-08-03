@@ -16,8 +16,10 @@ from src.validate.discovery import (
     GAMMA_BASE_URL,
     DiscoveryResult,
     TagFilterIgnored,
+    TennisDiscoveryResult,
     check_tag_filter,
     iter_events,
+    tennis_matches,
     updown_outcomes,
 )
 from src.validate.book_poller import (
@@ -104,6 +106,55 @@ EV_STALE = {  # endDate далеко за пределами живого окн
             "clobTokenIds": '["q1","q2"]',
             "outcomes": '["Up", "Down"]',
         }
+    ],
+}
+
+# Теннис: endDate = slug_date + 7 дней (факт замера 2026-08-02). Winner-рынок
+# матча имеет slug, РАВНЫЙ slug события; остальные рынки -- с суффиксами.
+TENNIS_NOW = datetime(2026, 8, 2, 12, 0, 0, tzinfo=timezone.utc)
+TENNIS_EV = {
+    "slug": "atp-sonego-grieksp-2026-08-03",
+    "closed": False,
+    "endDate": "2026-08-10T14:00:00Z",
+    "markets": [
+        {  # winner-рынок: slug == slug события
+            "slug": "atp-sonego-grieksp-2026-08-03",
+            "closed": False,
+            "acceptingOrders": True,
+            "endDate": "2026-08-10T14:00:00Z",
+            "clobTokenIds": '["t1","t2"]',
+            "outcomes": '["Lorenzo Sonego", "Tallon Griekspoor"]',
+        },
+        {"slug": "atp-sonego-grieksp-2026-08-03-completed-match", "closed": False},
+        {"slug": "atp-sonego-grieksp-2026-08-03-set-2-winner-Sonego-vs-Griekspoor", "closed": False},
+    ],
+}
+TENNIS_EV_DOUBLES = {  # парный матч: исключается из выборки
+    "slug": "atp-doubles-alexgib-chanjoi-2026-07-28",
+    "closed": False,
+    "endDate": "2026-08-10T15:00:00Z",
+    "markets": [
+        {
+            "slug": "atp-doubles-alexgib-chanjoi-2026-07-28",
+            "closed": False,
+            "acceptingOrders": True,
+            "clobTokenIds": '["d1","d2"]',
+            "outcomes": '["A", "B"]',
+        }
+    ],
+}
+TENNIS_EV_WRONG_TS = {  # endDate вне окна discovery [now+5d, now+10d]
+    "slug": "wta-siegemu-samsono-2026-01-18",
+    "closed": False,
+    "endDate": "2026-02-01T00:00:00Z",
+    "markets": [],
+}
+TENNIS_EV_NO_WINNER = {  # событие-матч без winner-рынка (нет слага, равного slug события)
+    "slug": "itf-noord-urrea-2026-07-29",
+    "closed": False,
+    "endDate": "2026-08-11T15:00:00Z",
+    "markets": [
+        {"slug": "itf-noord-urrea-2026-07-29-completed-match", "closed": False},
     ],
 }
 
@@ -274,6 +325,50 @@ class TestUpdownOutcomes(unittest.TestCase):
         with make_client(FakeGamma([EV_CLOSED])) as c:
             with self.assertRaises(TagFilterIgnored):
                 updown_outcomes(c, now=NOW)
+
+
+class TestTennisMatches(unittest.TestCase):
+    """Теннис: только матчевые winner-рынки одиночек в окне endDate."""
+
+    def test_extracts_match_winners_only(self) -> None:
+        # TENNIS_EV в окне (+5..+10 дней) и даёт 2 токена; doubles и stale отсеиваются.
+        with make_client(FakeGamma([TENNIS_EV, TENNIS_EV_DOUBLES, TENNIS_EV_WRONG_TS])) as c:
+            res: TennisDiscoveryResult = tennis_matches(c, now=TENNIS_NOW)
+        self.assertEqual(len(res.matches), 1)
+        m = res.matches[0]
+        self.assertEqual(m.market_slug, "atp-sonego-grieksp-2026-08-03")
+        self.assertEqual(m.token_ids, ("t1", "t2"))
+        self.assertEqual(res.n_match_events, 1)
+        self.assertEqual(res.n_winner_missing, 0)
+
+    def test_doubles_excluded(self) -> None:
+        # Парные матчи (atp-doubles-*) -- вне единицы наблюдения (DECISIONS_NEEDED.md).
+        with make_client(FakeGamma([TENNIS_EV_DOUBLES, TENNIS_EV])) as c:
+            res = tennis_matches(c, now=TENNIS_NOW)
+        slugs = [m.market_slug for m in res.matches]
+        self.assertEqual(slugs, ["atp-sonego-grieksp-2026-08-03"])
+        self.assertEqual(res.n_match_events, 1)  # doubles не считается матчем
+
+    def test_out_of_window_excluded(self) -> None:
+        # TENNIS_EV_WRONG_TS (endDate в 2026-02) вне окна discovery -- сервер не отдаст.
+        with make_client(FakeGamma([TENNIS_EV_WRONG_TS, TENNIS_EV])) as c:
+            res = tennis_matches(c, now=TENNIS_NOW)
+        self.assertEqual(len(res.matches), 1)
+        self.assertEqual(res.n_match_events, 1)
+
+    def test_missing_winner_market_counted(self) -> None:
+        # Событие-матч без winner-рынка учитывается в n_winner_missing, не падает.
+        with make_client(FakeGamma([TENNIS_EV_NO_WINNER])) as c:
+            res = tennis_matches(c, now=TENNIS_NOW)
+        self.assertEqual(res.matches, ())
+        self.assertEqual(res.n_match_events, 1)
+        self.assertEqual(res.n_winner_missing, 1)
+
+    def test_empty_events(self) -> None:
+        with make_client(FakeGamma([])) as c:
+            res = tennis_matches(c, now=TENNIS_NOW)
+        self.assertEqual(res.matches, ())
+        self.assertEqual(res.n_events_seen, 0)
 
 
 # --- Задача 2: book_poller -------------------------------------------------

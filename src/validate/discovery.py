@@ -36,6 +36,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 import time
 from dataclasses import dataclass
@@ -47,6 +48,7 @@ import httpx
 GAMMA_BASE_URL = "https://gamma-api.polymarket.com"
 EVENTS_PATH = "/events"
 TAG_CRYPTO = "crypto"
+TAG_TENNIS = "tennis"
 UPDOWN_MARKER = "updown"
 PAGE_LIMIT = 100
 OFFSET_CEILING = 2000
@@ -54,6 +56,18 @@ NONEXISTENT_TAG = "nosuchtagxyz"
 USER_AGENT = "pm-validate/0.1 (personal research)"
 WINDOW_LOOKBACK_MIN = 15
 WINDOW_AHEAD_MIN = 15
+
+# Теннис: слаги матчевых событий и winner-рынков заканчиваются датой YYYY-MM-DD.
+# Парные матчи (atp-doubles-*/wta-doubles-*) исключены (DECISIONS_NEEDED.md).
+TENNIS_MATCH_SLUG_RE = re.compile(r"\d{4}-\d{2}-\d{2}$")
+TENNIS_DOUBLES_MARKER = "doubles"
+# ФАКТ (замер 2026-08-02): у теннисного события endDate = slug_date + 7 дней
+# ровно (все 96 проверенных матчей). Значит живые матчи сегодня/завтра имеют
+# endDate в [now+6d, now+8d]; окно [now+5d, now+10d] ловит их на сервере,
+# а старое (slug_date < сегодня-2) отсекается серверной фильтрацией endDate.
+TENNIS_END_WINDOW_MIN_D = 5
+TENNIS_END_WINDOW_MAX_D = 10
+TOKENS_PER_MATCH = 2
 
 _RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
 _RETRY_ATTEMPTS = 4
@@ -341,6 +355,91 @@ def updown_outcomes(
         outcomes=tuple(outcomes),
         n_events_seen=n_events_seen,
         n_updown_markets=n_updown_markets,
+    )
+
+
+@dataclass(frozen=True)
+class TennisMatch:
+    """Один матчевый winner-рынок: слаг события (== слаг рынка) и token_id исходов."""
+
+    market_slug: str
+    token_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class TennisDiscoveryResult:
+    """Результат обнаружения теннисных матчей с диагностикой охвата."""
+
+    matches: tuple[TennisMatch, ...]
+    n_events_seen: int
+    n_match_events: int
+    n_winner_missing: int
+
+
+def _is_match_event(event: dict[str, Any]) -> bool:
+    """Событие-матч: слаг заканчивается датой YYYY-MM-DD и не содержит 'doubles'."""
+    slug = event.get("slug")
+    if not isinstance(slug, str):
+        return False
+    if TENNIS_DOUBLES_MARKER in slug:
+        return False
+    return bool(TENNIS_MATCH_SLUG_RE.search(slug))
+
+
+def tennis_matches(
+    client: httpx.Client,
+    *,
+    now: datetime | None = None,
+) -> TennisDiscoveryResult:
+    """Обнаружение живых/завтрашних матчевых winner-рынков тенниса.
+
+    Источник: /events?tag_slug=tennis&closed=false. ДАТНЫЙ СРЕЗ ОБЯЗАТЕЛЕН
+    (потолок offset=2000, список не сортирован): окно endDate [now+5d, now+10d]
+    ловит матчи сегодня/завтра (endDate = slug_date + 7d, факт замера) и
+    отсекает старое на сервере.
+
+    Winner-рынок матча — ровно один: его slug совпадает со slug события
+    (проверено: 0 пропусков, 0 дублей на 148 матчах пробы). Остальные рынки
+    события имеют суффиксы (-completed-match, -set-2-winner-..., -set-totals-...)
+    и в выборку не попадают.
+    """
+    now = now or datetime.now(timezone.utc)
+    lo = now + timedelta(days=TENNIS_END_WINDOW_MIN_D)
+    hi = now + timedelta(days=TENNIS_END_WINDOW_MAX_D)
+    matches: list[TennisMatch] = []
+    n_events_seen = 0
+    n_match_events = 0
+    n_winner_missing = 0
+    for event in iter_events(
+        client,
+        tag_slug=TAG_TENNIS,
+        closed=False,
+        end_date_min=lo,
+        end_date_max=hi,
+    ):
+        n_events_seen += 1
+        if not _is_match_event(event):
+            continue
+        n_match_events += 1
+        event_slug = event.get("slug")
+        winner = None
+        for market in event.get("markets") or []:
+            if not isinstance(market, dict):
+                continue
+            if (market.get("slug") or "") == event_slug:
+                winner = market
+                break
+        if winner is None:
+            n_winner_missing += 1
+            continue
+        tokens = tuple(t for t in _token_ids(winner) if t)
+        if len(tokens) == TOKENS_PER_MATCH:
+            matches.append(TennisMatch(market_slug=event_slug, token_ids=tokens))
+    return TennisDiscoveryResult(
+        matches=tuple(matches),
+        n_events_seen=n_events_seen,
+        n_match_events=n_match_events,
+        n_winner_missing=n_winner_missing,
     )
 
 

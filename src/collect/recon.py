@@ -97,6 +97,7 @@ def recon_check(
     *,
     ts_recv_ms: int,
     token_id: str,
+    seq: int,
     ours: LiveBook,
     theirs_bids: dict[float, float],
     theirs_asks: dict[float, float],
@@ -105,6 +106,9 @@ def recon_check(
 
     ours — LiveBook ДО применения этого снимка (книга из дельт).
     theirs_bids/theirs_asks — полный серверный снимок.
+    seq — локальный счётчик приёмника (тот же, что у book_snapshots):
+    ключ (token_id, seq) не даёт потерять ни одно сравнение, даже когда
+    два book-события одного токена приходят в одну миллисекунду.
 
     verdict:
       warmup   — наша книга ещё не инициализирована (первый снимок после
@@ -117,6 +121,7 @@ def recon_check(
         return {
             "ts_recv_ms": ts_recv_ms,
             "token_id": token_id,
+            "seq": seq,
             "n_levels_ours": ours.n_levels,
             "n_levels_theirs": len(theirs_bids) + len(theirs_asks),
             "max_abs_diff_price": 0.0,
@@ -160,6 +165,7 @@ def recon_check(
     return {
         "ts_recv_ms": ts_recv_ms,
         "token_id": token_id,
+        "seq": seq,
         "n_levels_ours": n_ours,
         "n_levels_theirs": n_theirs,
         "max_abs_diff_price": round(max_price_diff, 8),

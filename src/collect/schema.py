@@ -74,13 +74,17 @@ GAP_INTERVALS_KEY = ("token_id", "start_ms", "end_ms", "reason")
 RECON_CHECKS_COLUMNS = {
     "ts_recv_ms": "BIGINT NOT NULL",
     "token_id": "TEXT NOT NULL",
+    "seq": "BIGINT NOT NULL",
     "n_levels_ours": "BIGINT NOT NULL",
     "n_levels_theirs": "BIGINT NOT NULL",
     "max_abs_diff_price": "DOUBLE NOT NULL",
     "max_abs_diff_size": "DOUBLE NOT NULL",
     "verdict": "TEXT NOT NULL",
 }
-RECON_CHECKS_KEY = ("token_id", "ts_recv_ms")
+# Ключ включает локальный seq: два book-события одного токена в одну
+# миллисекунду (ts_recv_ms совпал) НЕ должны затирать друг друга — recon
+# обязан сохранить каждое сравнение (ЗАДАЧА 3: "throw away nothing").
+RECON_CHECKS_KEY = ("token_id", "seq")
 
 COLLECTOR_SESSIONS_COLUMNS = {
     "session_id": "TEXT NOT NULL",
