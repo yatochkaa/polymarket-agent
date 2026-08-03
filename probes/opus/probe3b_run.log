@@ -1,0 +1,67 @@
+ERROR: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)>
+Traceback (most recent call last):
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\urllib\request.py", line 1348, in do_open
+    h.request(req.get_method(), req.selector, req.data, headers,
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\client.py", line 1323, in request
+    self._send_request(method, url, body, headers, encode_chunked)
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\client.py", line 1369, in _send_request
+    self.endheaders(body, encode_chunked=encode_chunked)
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\client.py", line 1318, in endheaders
+    self._send_output(message_body, encode_chunked=encode_chunked)
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\client.py", line 1078, in _send_output
+    self.send(msg)
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\client.py", line 1016, in send
+    self.connect()
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\http\client.py", line 1495, in connect
+    self.sock = self._context.wrap_socket(self.sock,
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\ssl.py", line 517, in wrap_socket
+    return self.sslsocket_class._create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\ssl.py", line 1104, in _create
+    self.do_handshake()
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\ssl.py", line 1382, in do_handshake
+    self._sslobj.do_handshake()
+ssl.SSLEOFError: [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\awf\Desktop\test\probes\opus\probe3b_filter4_recon.py", line 22, in get
+    with urlopen(req,timeout=45) as r: return json.loads(r.read())
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\urllib\request.py", line 216, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\urllib\request.py", line 519, in open
+    response = self._open(req, data)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\urllib\request.py", line 536, in _open
+    result = self._call_chain(self.handle_open, protocol, protocol +
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\urllib\request.py", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\urllib\request.py", line 1391, in https_open
+    return self.do_open(http.client.HTTPSConnection, req,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\awf\AppData\Roaming\uv\python\cpython-3.11-windows-x86_64-none\Lib\urllib\request.py", line 1351, in do_open
+    raise URLError(err)
+urllib.error.URLError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\awf\Desktop\test\probes\opus\probe3b_filter4_recon.py", line 128, in <module>
+    try: main()
+         ^^^^^^
+  File "C:\Users\awf\Desktop\test\probes\opus\probe3b_filter4_recon.py", line 95, in main
+    tr,cap=paged({'user':w,'market':c},st); st['cap']=st['cap'] or cap
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\awf\Desktop\test\probes\opus\probe3b_filter4_recon.py", line 39, in paged
+    page=rows(get(DATA,'/trades',{**params,'limit':PAGE,'offset':off}),'trades')
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\awf\Desktop\test\probes\opus\probe3b_filter4_recon.py", line 27, in get
+    except (URLError,TimeoutError) as e: raise RuntimeError(str(e))
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1016)>
