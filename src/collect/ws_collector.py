@@ -506,6 +506,39 @@ class Collector:
             "n_silence_episodes": 0,
             "n_pings_fired": 0,
         }
+        # Per-connection статистика (приёмка мультисоединённого транспорта,
+        # Задача 2): ключ conn_id (0-based индекс соединения), значения —
+        # счётчики ОДНОГО соединения, не общие. Заполняется по мере приёма,
+        # выгружается в conn_stats в конце run(). Первым инициализирует
+        # _run_connection через _conn_stats(conn_id) с n_tokens.
+        self.conn_stats: dict[int, dict[str, int | float | None]] = {}
+
+    def _conn_stats(self, conn_id: int) -> dict[str, int | float | None]:
+        """Счётчики одного соединения (ленивая инициализация)."""
+        st = self.conn_stats.get(conn_id)
+        if st is None:
+            st = {
+                "n_tokens": 0,
+                "messages": 0,
+                "events": 0,
+                "recons": 0,
+                "recons_mismatch": 0,
+                "max_silence_s": 0.0,
+                "n_silence_episodes": 0,
+                "n_pings_fired": 0,
+                "first_msg_ms": None,
+                "last_msg_ms": None,
+            }
+            self.conn_stats[conn_id] = st
+        return st
+
+    def _conn_messages(self, conn_id: int, ts_recv_ms: int) -> None:
+        """Сообщение принято соединением conn_id: счётчики + first/last."""
+        st = self._conn_stats(conn_id)
+        st["messages"] = int(st["messages"]) + 1
+        if st["first_msg_ms"] is None:
+            st["first_msg_ms"] = ts_recv_ms
+        st["last_msg_ms"] = ts_recv_ms
 
     def prewarm_seq(self, token_ids: Sequence[str]) -> None:
         """Предзаполнить счётчики seq для токенов ДО цикла приёма.
@@ -613,21 +646,29 @@ class Collector:
             self.livebooks[token_id] = book
         return book
 
-    def handle_event(self, event: Event, ts_recv_ms: int) -> None:
-        """Применить событие: обновить LiveBook и записать строки."""
+    def handle_event(self, event: Event, ts_recv_ms: int, conn_id: int = 0) -> None:
+        """Применить событие: обновить LiveBook и записать строки.
+
+        conn_id — номер соединения, принявшего событие (для per-connection
+        статистики приёмки, Задача 2). По умолчанию 0: тесты и одиночное
+        соединение не обязаны передавать.
+        """
         self.stats["events"] += 1
+        st = self._conn_stats(conn_id)
+        st["events"] = int(st["events"]) + 1
         self.last_activity_ms = ts_recv_ms
 
         if isinstance(event, BookEvent):
-            self._handle_book(event, ts_recv_ms)
+            self._handle_book(event, ts_recv_ms, conn_id=conn_id)
         elif isinstance(event, DeltaEvent):
-            self._handle_delta(event, ts_recv_ms)
+            self._handle_delta(event, ts_recv_ms, conn_id=conn_id)
         elif isinstance(event, TradeEvent):
-            self._handle_trade(event, ts_recv_ms)
+            self._handle_trade(event, ts_recv_ms, conn_id=conn_id)
 
-    def _handle_book(self, event: BookEvent, ts_recv_ms: int) -> None:
+    def _handle_book(self, event: BookEvent, ts_recv_ms: int, conn_id: int = 0) -> None:
         if self._is_duplicate(self._dedup_key(event)):
             return
+        st = self._conn_stats(conn_id)
         live = self._livebook(event.token_id)
         seq = self._seq_snap(event.token_id)
         self.writer.submit_row(
@@ -656,8 +697,10 @@ class Collector:
         )
         self.writer.submit_row("recon_checks", rc)
         self.stats["recons"] += 1
+        st["recons"] = int(st["recons"]) + 1
         if rc["verdict"] == "mismatch":
             self.stats["recons_mismatch"] += 1
+            st["recons_mismatch"] = int(st["recons_mismatch"]) + 1
 
         if event.token_id in self.pending_resync:
             self.writer.submit_row(
@@ -692,7 +735,7 @@ class Collector:
         )
         self.stats["ticks"] += 1
 
-    def _handle_delta(self, event: DeltaEvent, ts_recv_ms: int) -> None:
+    def _handle_delta(self, event: DeltaEvent, ts_recv_ms: int, conn_id: int = 0) -> None:
         live = self._livebook(event.token_id)
         if event.side not in (SIDE_BUY, SIDE_SELL):
             self.stats["unknown_types"] += 1
@@ -739,7 +782,7 @@ class Collector:
         )
         self.stats["ticks"] += 1
 
-    def _handle_trade(self, event: TradeEvent, ts_recv_ms: int) -> None:
+    def _handle_trade(self, event: TradeEvent, ts_recv_ms: int, conn_id: int = 0) -> None:
         if self._is_duplicate(self._dedup_key(event)):
             return
         self.writer.submit_row(
@@ -766,12 +809,14 @@ class Collector:
         tokens: Sequence[str] | None = None,
         *,
         from_ms: int | None = None,
+        conn_id: int = 0,
     ) -> None:
         """Мягкий флаг тишины: молчание дольше порога — time_gap, не разрыв.
 
         tokens — те токены, чей канал замолчал (при мультисоединении —
         только своё соединение, не все подписки). from_ms — начало окна
         тишины этого соединения (при мультисоединении своё, не глобальное).
+        conn_id — номер соединения для per-connection статистики (Задача 2).
         """
         if tokens is None:
             tokens = self.subscribed_tokens
@@ -779,12 +824,16 @@ class Collector:
             from_ms = self.last_activity_ms
         idle_s = (now_ms - from_ms) / 1000.0
         self.heartbeat["max_silence_s"] = max(self.heartbeat["max_silence_s"], idle_s)
+        st = self._conn_stats(conn_id)
+        st["max_silence_s"] = max(float(st["max_silence_s"]), idle_s)
         if idle_s >= PING_INTERVAL_S:
             self.heartbeat["n_pings_fired"] += 1
+            st["n_pings_fired"] = int(st["n_pings_fired"]) + 1
         if idle_s >= SILENCE_THRESHOLD_S:
             if not self._silence_open:
                 self._silence_open = True
                 self.heartbeat["n_silence_episodes"] += 1
+                st["n_silence_episodes"] = int(st["n_silence_episodes"]) + 1
                 for token_id in tokens:
                     self.writer.submit_row(
                         "gap_intervals",
@@ -805,6 +854,7 @@ class Collector:
         *,
         ts_from_ms: int,
         ts_to_ms: int,
+        conn_id: int = 0,
     ) -> None:
         """Обрыв соединения: gap_intervals(reason=disconnect) по всем токенам."""
         self.stats["reconnects"] += 1
@@ -832,10 +882,12 @@ class WSHandler:
         *,
         tokens: list[str],
         market_slugs: dict[str, str],
+        conn_id: int = 0,
     ) -> None:
         self.collector = collector
         self.tokens = list(tokens)
         self.market_slugs = dict(market_slugs)
+        self.conn_id = conn_id
         self._market_id_written: set[str] = set()
         self.last_activity_ms: int | None = None
 
@@ -843,6 +895,7 @@ class WSHandler:
         if isinstance(raw, (bytes, bytearray)):
             raw = raw.decode("utf-8", errors="replace")
         self.collector.stats["messages"] += 1
+        self.collector._conn_messages(self.conn_id, ts_recv_ms)
         self.last_activity_ms = ts_recv_ms
         try:
             payload = json.loads(raw)
@@ -857,7 +910,7 @@ class WSHandler:
                 )
                 self._market_id_written.add(token_id)
         for event in events:
-            self.collector.handle_event(event, ts_recv_ms)
+            self.collector.handle_event(event, ts_recv_ms, conn_id=self.conn_id)
         if not events:
             self.collector.stats["unknown_types"] += 1
 
@@ -1113,6 +1166,8 @@ async def _run_connection(
 ) -> None:
     """Одна стабильная WS-сессия: подключение, приём, ротация, экспорт.
     Переподключение с экспоненциальной задержкой внутри. Выход по deadline."""
+    st = collector._conn_stats(handler.conn_id)
+    st["n_tokens"] = len(handler.tokens)
     delay = RECONNECT_BASE_S
     last_recheck = time.monotonic()
     last_export = time.monotonic()
@@ -1154,7 +1209,8 @@ async def _run_connection(
                         raw = await asyncio.wait_for(ws.recv(), timeout=RECV_TIMEOUT_S)
                     except asyncio.TimeoutError:
                         collector.observe_silence(
-                            utc_ms(), tokens=handler.tokens, from_ms=handler.last_activity_ms
+                            utc_ms(), tokens=handler.tokens,
+                            from_ms=handler.last_activity_ms, conn_id=handler.conn_id,
                         )
                         continue
                     handler.handle_message(raw, utc_ms())
@@ -1203,6 +1259,7 @@ async def _run_connection(
                 else collector.last_activity_ms
             ),
             ts_to_ms=utc_ms(),
+            conn_id=handler.conn_id,
         )
 
 
@@ -1292,7 +1349,7 @@ async def run(
                 )
             tasks = [
                 _run_connection(
-                    WSHandler(collector, tokens=part, market_slugs=slugs),
+                    WSHandler(collector, tokens=part, market_slugs=slugs, conn_id=i),
                     collector,
                     deadline=deadline,
                     export_root=export_root,
@@ -1306,7 +1363,7 @@ async def run(
             ]
             await asyncio.gather(*tasks)
         else:
-            handler = WSHandler(collector, tokens=tokens, market_slugs=slugs)
+            handler = WSHandler(collector, tokens=tokens, market_slugs=slugs, conn_id=0)
             await _run_connection(
                 handler, collector, deadline=deadline, export_root=export_root,
                 vertical=vertical, fixed_tokens=fixed_tokens,
@@ -1320,6 +1377,25 @@ async def run(
     finally:
         now = utc_ms()
         try:
+            for conn_id in sorted(collector.conn_stats):
+                st = collector.conn_stats[conn_id]
+                writer.submit_row(
+                    "conn_stats",
+                    {
+                        "session_id": session_id,
+                        "conn_id": conn_id,
+                        "n_tokens": int(st["n_tokens"]),
+                        "messages": int(st["messages"]),
+                        "events": int(st["events"]),
+                        "recons": int(st["recons"]),
+                        "recons_mismatch": int(st["recons_mismatch"]),
+                        "max_silence_s": round(float(st["max_silence_s"]), 3),
+                        "n_silence_episodes": int(st["n_silence_episodes"]),
+                        "n_pings_fired": int(st["n_pings_fired"]),
+                        "first_msg_ms": st["first_msg_ms"],
+                        "last_msg_ms": st["last_msg_ms"],
+                    },
+                )
             writer.call(
                 store.end_session,
                 session_id=session_id,

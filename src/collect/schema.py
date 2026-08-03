@@ -96,6 +96,27 @@ COLLECTOR_SESSIONS_COLUMNS = {
 }
 COLLECTOR_SESSIONS_KEY = ("session_id",)
 
+# Per-connection статистика сессии (приёмка мультисоединённого транспорта,
+# Задача 2, решение владельца 2026-08-03). Пишет коллектор в конце run();
+# читает probes/deepseek/probe_accept_conns.py. Одну строку на соединение.
+# first_msg_ms/last_msg_ms могут быть NULL: соединение могло не получить
+# ни одного сообщения (сразу встало) — это ДАННЫЕ для C4, а не отсутствие.
+CONN_STATS_COLUMNS = {
+    "session_id": "TEXT NOT NULL",
+    "conn_id": "INTEGER NOT NULL",
+    "n_tokens": "INTEGER NOT NULL",
+    "messages": "BIGINT NOT NULL",
+    "events": "BIGINT NOT NULL",
+    "recons": "BIGINT NOT NULL",
+    "recons_mismatch": "BIGINT NOT NULL",
+    "max_silence_s": "DOUBLE NOT NULL",
+    "n_silence_episodes": "INTEGER NOT NULL",
+    "n_pings_fired": "INTEGER NOT NULL",
+    "first_msg_ms": "BIGINT",
+    "last_msg_ms": "BIGINT",
+}
+CONN_STATS_KEY = ("session_id", "conn_id")
+
 MARKETS_TRACKED_COLUMNS = {
     "token_id": "TEXT NOT NULL",
     "market_id": "TEXT",
@@ -118,6 +139,7 @@ TABLES: dict[str, tuple[dict[str, str], tuple[str, ...]]] = {
     "gap_intervals": (GAP_INTERVALS_COLUMNS, GAP_INTERVALS_KEY),
     "recon_checks": (RECON_CHECKS_COLUMNS, RECON_CHECKS_KEY),
     "collector_sessions": (COLLECTOR_SESSIONS_COLUMNS, COLLECTOR_SESSIONS_KEY),
+    "conn_stats": (CONN_STATS_COLUMNS, CONN_STATS_KEY),
     "markets_tracked": (MARKETS_TRACKED_COLUMNS, MARKETS_TRACKED_KEY),
     "own_orders": (OWN_ORDERS_COLUMNS, OWN_ORDERS_KEY),
 }

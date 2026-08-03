@@ -188,6 +188,35 @@
 | markets_subscribed | INTEGER NOT NULL | calc | число токенов в подписке на старте |
 | exit_reason | TEXT NULL | calc | причина завершения (`user_stop`, `error`, ...) |
 
+### conn_stats
+
+Per-connection статистика одной сессии (приёмка мультисоединённого
+транспорта, Задача 2, решение владельца 2026-08-03). Одна строка на
+соединение; пишет коллектор в конце `run()` из счётчиков, которые велись
+по `conn_id` по мере приёма. Позволяет отличить одно вставшее соединение
+от двух работающих: без этого критерии C4 (молчание > 90 с) и C5
+(поток сообщений) невычислимы — общие `stats`/`heartbeat` неразделимы
+между соединениями.
+
+| колонка | тип | источник | смысл |
+|---|---|---|---|
+| session_id | TEXT NOT NULL | calc | uuid сессии |
+| conn_id | INTEGER NOT NULL | calc | номер соединения (0-based) |
+| n_tokens | INTEGER NOT NULL | calc | число токенов в подписке этого соединения |
+| messages | BIGINT NOT NULL | calc | принятых WS-сообщений на этом соединении |
+| events | BIGINT NOT NULL | calc | разобранных событий (book/delta/trade) |
+| recons | BIGINT NOT NULL | calc | сверок recon_checks |
+| recons_mismatch | BIGINT NOT NULL | calc | из них с verdict=mismatch |
+| max_silence_s | DOUBLE NOT NULL | calc | максимум тишины (без единого сообщения), с |
+| n_silence_episodes | INTEGER NOT NULL | calc | эпизодов молчания дольше SILENCE_THRESHOLD_S |
+| n_pings_fired | INTEGER NOT NULL | calc | раз простой между приёмами >= PING_INTERVAL_S |
+| first_msg_ms | BIGINT NULL | calc | время первого сообщения (NULL = ни одного) |
+| last_msg_ms | BIGINT NULL | calc | время последнего сообщения (NULL = ни одного) |
+
+Естественный ключ: `(session_id, conn_id)`. `first_msg_ms`/`last_msg_ms`
+равны NULL, когда соединение не приняло ни одного сообщения (сразу
+встало) — это ДАННЫЕ для C4, а не пропуск: не заполнять forward fill.
+
 ### markets_tracked
 
 | колонка | тип | источник | смысл |
@@ -212,3 +241,5 @@
 - Читает: `src/collect/coverage.py` (отчёт), `src/validate/compare.py`
   (сверка против pmdata по parquet-проекции 12 колонок),
   этап 4 (CLV): только `source='ws'`, никогда `rest_backfill` внутри разрыва.
+- `conn_stats`: читает `probes/deepseek/probe_accept_conns.py` (приёмка
+  Задачи 2) — критерии C2/C3/C4/C5 по прогонам 2conn/1conn/2conn/1conn.

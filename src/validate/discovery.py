@@ -81,13 +81,19 @@ class TagFilterIgnored(RuntimeError):
 
 @dataclass(frozen=True)
 class UpdownOutcome:
-    """Один исход рынка up/down: слаг рынка, имя исхода и его token_id."""
+    """Один исход рынка up/down: слаг рынка, имя исхода и его token_id.
+
+    end_date — истечение рынка (endDate из gamma, UTC), нужно приёмке
+    (probes/deepseek/probe_accept_conns.py) для отбора рынков с запасом
+    жизни до конца прогона; None, если у рынка нет endDate.
+    """
 
     market_slug: str
     outcome: str
     token_id: str
     coin: str
     interval_epoch: int | None
+    end_date: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -342,6 +348,13 @@ def updown_outcomes(
                     name = str(names[i])
                 else:
                     name = f"outcome{i}"
+                ed_raw = market.get("endDate")
+                end_date = None
+                if isinstance(ed_raw, str):
+                    try:
+                        end_date = _parse_iso(ed_raw)
+                    except ValueError:
+                        end_date = None
                 outcomes.append(
                     UpdownOutcome(
                         market_slug=slug,
@@ -349,6 +362,7 @@ def updown_outcomes(
                         token_id=tid,
                         coin=_coin_from_slug(slug),
                         interval_epoch=_epoch_from_slug(slug),
+                        end_date=end_date,
                     )
                 )
     return DiscoveryResult(
