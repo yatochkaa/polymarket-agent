@@ -102,6 +102,10 @@ MIN_DAYS = 60              # sec.5: >=60 dney razmah
 ETALON_MAX_AGE = 3600      # sec.2: etalon <= 60 minut do starta
 WINNER_HI, WINNER_LO = 0.9, 0.1     # terminalnyy pobeditel (verbatim diag_filter7_degeneracy)
 TERM_HI, TERM_LO = 0.999, 0.001     # DOBAVKA3: terminalnye (raschyotnye) ceny, ne rynochnye
+# ---- POPRAVKA 11 (storona vhoda): terminalnye sdelki ne vhodyat v entry_vwap ----
+# Predikat = is_term_price na SYROY cene (TOZHDESTVENNO DOBAVKA3 :471). n_trades zamorozhen.
+DROP_REASON_P11 = "p11_terminal_entry_empty"   # OTDELNOE novoe znachenie, sushchestvuyushchie NE pereispolzuem
+EXPECTED_DROP_TO_ZERO = 18                       # offline-srez: par s pustym vhodom rovno 18 (PROVERYAEMO -> gate)
 
 OFFSET_CAP = 2000          # gamma deep-offset cap; popadanie -> PADAET
 TRADES_LIMIT = 10000       # /trades limit za otvet (proven recover3d)
@@ -414,9 +418,14 @@ def _num(v, name, cond):
         raise AmbiguousInput("ne chislovoe pole %s=%r cond=%s" % (name, v, cond))
 
 
-def convolve(prematch_trades, clob_list, clob_set, cond):
+def convolve(prematch_trades, clob_list, clob_set, cond, p11=False):
     """sec.3 svyortka predmatch sdelok koshelka v odnu chistuyu poziciyu.
-    (N, entry_vwap, direction, two_sided). direction: +1 long T*, -1 short T*, 0 pri N=0."""
+    (N, entry_vwap, direction, two_sided, n_used). direction: +1 long T*, -1 short T*, 0 pri N=0.
+    POPRAVKA 11 (p11=True): terminalnye sdelki (is_term_price na SYROY cene -- TOZHDESTVENNO DOBAVKA3
+    :471) NE vhodyat v entry_vwap. N/direction/two_sided schitayutsya po VSEM sdelkam (n_trades zamorozhen).
+    n_used = chislo sdelok storony napravleniya, realno voshedshih v entry posle isklyucheniya.
+    Esli napravlenie est' (N!=0), no n_used==0 -> entry=None BEZ isklyucheniya AmbiguousInput -> DROP_REASON_P11.
+    Pri p11=False povedenie POBITOVO zamorozhennoe (Prohod A)."""
     signed = 0.0
     contribs = []
     has_pos = has_neg = False
@@ -433,6 +442,7 @@ def convolve(prematch_trades, clob_list, clob_set, cond):
         side = (t.get("side") or "").upper()
         if side not in ("BUY", "SELL"):
             raise AmbiguousInput("neizvestnaya storona side=%r cond=%s" % (t.get("side"), cond))
+        term = is_term_price(price)   # POPRAVKA 11: SYRAYA cena, TA ZHE is_term_price chto DOBAVKA3 (:471)
         if idx == 0:
             tstar_price = price
             base_dir = 1 if side == "BUY" else -1
@@ -440,22 +450,29 @@ def convolve(prematch_trades, clob_list, clob_set, cond):
             tstar_price = 1.0 - price
             base_dir = -1 if side == "BUY" else 1
         signed += base_dir * size
-        contribs.append((base_dir, size, tstar_price))
+        contribs.append((base_dir, size, tstar_price, term))
         if base_dir > 0: has_pos = True
         else: has_neg = True
     N = signed
     if abs(N) < 1e-9:
-        return 0.0, None, 0, (has_pos and has_neg)
+        return 0.0, None, 0, (has_pos and has_neg), 0
     direction = 1 if N > 0 else -1
     num = den = 0.0
-    for base_dir, size, tstar_price in contribs:
+    used = 0
+    for base_dir, size, tstar_price, term in contribs:
         if base_dir == direction:
+            if p11 and term:
+                continue              # POPRAVKA 11: terminalnaya sdelka storony -> NE v entry_vwap
             num += size * tstar_price
             den += size
+            used += 1
+    if p11 and den <= 0.0:
+        # napravlenie est' (N!=0), no vse sdelki storony terminalny -> vhod pust -> DROP_REASON_P11
+        return N, None, direction, (has_pos and has_neg), 0
     entry = (num / den) if den > 0 else None
     if entry is None:
         raise AmbiguousInput("pustaya storona chistoy pozicii cond=%s (N=%r)" % (cond, N))
-    return N, entry, direction, (has_pos and has_neg)
+    return N, entry, direction, (has_pos and has_neg), used
 
 
 def market_etalon(all_trades, gst, clob_list, clob_set, cond):
@@ -515,15 +532,21 @@ def clv_of(direction, entry, p_ref):
 # ------------------------------- parquet (DOBAVKA1) ----------------------
 PAIR_COLS = ("wallet", "slug", "tier", "gameStartTime", "n_trades",
              "entry_vwap", "p_ref", "p_ref_age_min", "clv", "dropped_reason")
+# POPRAVKA 11: v Prohode B dobavlyaetsya kolonka n_trades_used_p11 (srazu POSLE n_trades).
+PAIR_COLS_P11 = PAIR_COLS[:5] + ("n_trades_used_p11",) + PAIR_COLS[5:]
 
-def write_pairs_parquet(path, rows):
+def write_pairs_parquet(path, rows, p11=False):
     import pyarrow as pa, pyarrow.parquet as pq
-    schema = pa.schema([
+    fields = [
         ("wallet", pa.string()), ("slug", pa.string()), ("tier", pa.string()),
-        ("gameStartTime", pa.int64()), ("n_trades", pa.int64()),
+        ("gameStartTime", pa.int64()), ("n_trades", pa.int64())]
+    if p11:
+        fields.append(("n_trades_used_p11", pa.int64()))   # POPRAVKA 11: srazu posle n_trades
+    fields += [
         ("entry_vwap", pa.float64()), ("p_ref", pa.float64()),
         ("p_ref_age_min", pa.float64()), ("clv", pa.float64()),
-        ("dropped_reason", pa.string())])
+        ("dropped_reason", pa.string())]
+    schema = pa.schema(fields)   # p11=False: schema POBITOVO kak frozen (from_pylist ignoriruet lishnie klyuchi)
     tmp = path + ".tmp"
     pq.write_table(pa.Table.from_pylist(rows, schema=schema), tmp)
     os.replace(tmp, path)
@@ -584,7 +607,7 @@ def _write_bad_prices_csv(data_dir, records):
 
 
 # ------------------------------- sbor + voronka --------------------------
-def collect(data_dir, enum_min, enum_max, do_control, dry):
+def collect(data_dir, enum_min, enum_max, do_control, dry, p11=False):
     if not os.path.isdir(data_dir):
         os.makedirs(data_dir)
     tag = "DRYRUN " if dry else ""
@@ -789,6 +812,7 @@ def collect(data_dir, enum_min, enum_max, do_control, dry):
         "row3_no_etalon60": 0,
         "row4_net_zero": 0,
         "row5_amb_terminal": 0,
+        "row6_p11_entry_empty": 0,
         "valid_pairs": 0,
         "two_sided": 0,
         "wallets_with_prematch": set(),
@@ -796,6 +820,7 @@ def collect(data_dir, enum_min, enum_max, do_control, dry):
     } for t in DECISION_TIERS}
 
     term_pre_total = 0            # DOBAVKA3: term-cen vnutri predmatch okna (ozhidaetsya 0)
+    p11_drop_total = 0            # POPRAVKA 11: par s pustym vhodom (n_trades_used_p11==0, N!=0)
     pair_rows = []                # DOBAVKA1: KAZHDAYA para koshelyok x match
     valid_json = []               # deystvitelnye pary v JSON-otchyot
 
@@ -831,10 +856,11 @@ def collect(data_dir, enum_min, enum_max, do_control, dry):
                         term_pre_total += 1
             n_trades = len(prematch)
 
-            def emit(reason, entry, clv):
+            def emit(reason, entry, clv, n_used=None):
                 pair_rows.append({
                     "wallet": w, "slug": m["slug"], "tier": tier, "gameStartTime": int(gst),
                     "n_trades": int(n_trades),
+                    "n_trades_used_p11": (int(n_used) if n_used is not None else None),
                     "entry_vwap": (round(entry, 6) if entry is not None else None),
                     "p_ref": (round(line0, 6) if (etalon_ok and line0 is not None) else None),
                     "p_ref_age_min": (p_ref_age_min if etalon_ok else None),
@@ -843,17 +869,25 @@ def collect(data_dir, enum_min, enum_max, do_control, dry):
 
             if not prematch:
                 F["row1_no_prematch"] += 1
-                emit("no_prematch", None, None)
+                emit("no_prematch", None, None, (0 if p11 else None))
                 continue
             F["wallets_with_prematch"].add(w)
-            N, entry, direction, two_sided = convolve(prematch, clob, clob_set, cond)
+            N, entry, direction, two_sided, n_used = convolve(prematch, clob, clob_set, cond, p11=p11)
+            if p11 and abs(N) >= 1e-9 and entry is None:
+                # POPRAVKA 11: napravlenie est' (N!=0), no vse sdelki storony terminalny -> vhod pust.
+                # Schitaetsya DO etalona (etalon-agnostichno, kak offline-srez) -> gate rovno 18.
+                # dropped_reason = OTDELNOE novoe znachenie (perekryvaet no_etalon/net_zero dlya etih par).
+                F["row6_p11_entry_empty"] += 1
+                p11_drop_total += 1
+                emit(DROP_REASON_P11, None, None, 0)
+                continue
             if not etalon_ok:
                 F["row3_no_etalon60"] += 1
-                emit("no_etalon_60min", entry, None)
+                emit("no_etalon_60min", entry, None, (n_used if p11 else None))
                 continue
             if abs(N) < 1e-9:
                 F["row4_net_zero"] += 1
-                emit("net_zero", None, None)
+                emit("net_zero", None, None, (0 if p11 else None))
                 continue
             # deystvitelnaya para
             clv = clv_of(direction, entry, line0)
@@ -863,12 +897,22 @@ def collect(data_dir, enum_min, enum_max, do_control, dry):
             if amb_terminal:
                 F["row5_amb_terminal"] += 1
             F["valid_by_wallet"][w].append({"cond": cond, "gst": gst})
-            emit("", entry, clv)
-            valid_json.append({
+            emit("", entry, clv, (n_used if p11 else None))
+            vj = {
                 "tier": tier, "wallet": w, "cond": cond, "slug": m["slug"], "gst": gst,
                 "N": round(N, 6), "direction": direction, "entry_vwap": round(entry, 6),
                 "p_ref": round(line0, 6), "p_ref_age_min": p_ref_age_min,
-                "clv": round(clv, 6), "amb_terminal": amb_terminal, "two_sided": two_sided})
+                "clv": round(clv, 6), "amb_terminal": amb_terminal, "two_sided": two_sided}
+            if p11:
+                vj["n_trades_used_p11"] = n_used
+            valid_json.append(vj)
+
+    # ------------------------------- POPRAVKA 11 GATE -------------------------------
+    if p11 and do_control and p11_drop_total != EXPECTED_DROP_TO_ZERO:
+        raise AmbiguousInput(
+            "POPRAVKA 11 GATE: par s pustym vhodom (n_trades_used_p11==0, N!=0) = %d, ozhidalos' %d -> "
+            "STOP, ne podgonyaem (dyra 0.999 raw-vs-tp ILI predikat/okno/sbor). Sm. p11_entry.py."
+            % (p11_drop_total, EXPECTED_DROP_TO_ZERO))
 
     # ------------------------------- otchyot -------------------------------
     report = {
@@ -957,6 +1001,8 @@ def collect(data_dir, enum_min, enum_max, do_control, dry):
             "pairs_per_wallet": dist,
             "tier_admission_passes": tier_adm[t]["passes"],
         }
+        if p11:
+            tinfo["drop_row6_p11_entry_empty"] = F["row6_p11_entry_empty"]
         report["tiers"][t] = tinfo
         print("  --- %s ---" % t.upper())
         print("    dopusk TIRA               : %s (matchey=%d, razmah=%.1f dney)"
@@ -970,6 +1016,9 @@ def collect(data_dir, enum_min, enum_max, do_control, dry):
         print("      stroka3 net etalona <=60 min : %d" % tinfo["drop_row3_no_etalon_60min"])
         print("      stroka4 N=0                  : %d" % tinfo["drop_row4_net_zero"])
         print("      stroka5 neodnoznach. termin. : %d (SPRAVOCHNO, paru ne invalidiruet)" % tinfo["overlay_row5_amb_terminal"])
+        if p11:
+            print("      stroka6 P11 vhod pust        : %d (n_trades_used_p11==0, N!=0 -> %s)"
+                  % (F["row6_p11_entry_empty"], DROP_REASON_P11))
         print("      deystvitelnyh par            : %d" % tinfo["valid_pairs"])
         print("      dolya dvuhstoronnih predmatch: %s" % tinfo["two_sided_share"])
         print("    DOPUSK KOSHELKA (>=%d par I >=%d dney, vnutri tira):" % (MIN_MATCHES, MIN_DAYS))
@@ -988,11 +1037,19 @@ def collect(data_dir, enum_min, enum_max, do_control, dry):
 
     print("\n[retry] uspeshnyh retraev (408/429/5xx, doshli posle povtora): %d" % _retries_ok[0])
     print("[term ] sdelok po terminalnym cenam VNUTRI predmatch okna: %d (ozhidalos' 0)" % term_pre_total)
+    if p11:
+        print("[p11  ] par s pustym vhodom posle term-isklyucheniya (n_trades_used_p11==0, N!=0): %d (gate=%d)"
+              % (p11_drop_total, EXPECTED_DROP_TO_ZERO))
 
     report["valid_pairs_count"] = len(valid_json)
     report["pair_rows_count"] = len(pair_rows)
+    if p11:
+        report["p11_applied"] = True
+        report["p11_drop_reason"] = DROP_REASON_P11
+        report["p11_expected_drop_to_zero"] = EXPECTED_DROP_TO_ZERO
+        report["p11_drop_total"] = p11_drop_total
 
-    base = "collect_window_%s%s_%s" % ("DRYRUN_" if dry else "", WIN_START, WIN_END_EXCL)
+    base = "collect_window_%s%s%s_%s" % ("DRYRUN_" if dry else "", "P11_" if p11 else "", WIN_START, WIN_END_EXCL)
     out_path = os.path.join(data_dir, base + ".json")
     parquet_path = os.path.join(data_dir, base + "_pairs.parquet")
     out = {"report": report, "pairs": valid_json}
@@ -1000,7 +1057,7 @@ def collect(data_dir, enum_min, enum_max, do_control, dry):
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=2)
     os.replace(tmp, out_path)
-    write_pairs_parquet(parquet_path, pair_rows)
+    write_pairs_parquet(parquet_path, pair_rows, p11=p11)
     bad_csv_path = _write_bad_prices_csv(data_dir, bad_price_records)
 
     print("\n[out] deystvitelnyh par: %d -> %s" % (len(valid_json), out_path))
@@ -1064,19 +1121,19 @@ def _selftest():
     # svyortka sec.3
     tr = [{"asset": "tk0", "side": "BUY", "price": 0.40, "size": 10},
           {"asset": "tk1", "side": "BUY", "price": 0.30, "size": 4}]
-    N, entry, direction, two = convolve(tr, clob, cs, "c1")
+    N, entry, direction, two, _u1 = convolve(tr, clob, cs, "c1")
     assert abs(N - 6.0) < 1e-9 and direction == 1 and abs(entry - 0.40) < 1e-9 and two is True
     tr0 = [{"asset": "tk0", "side": "BUY", "price": 0.5, "size": 5},
            {"asset": "tk0", "side": "SELL", "price": 0.6, "size": 5}]
-    N0, e0, d0, tw0 = convolve(tr0, clob, cs, "c0")
+    N0, e0, d0, tw0, _u0 = convolve(tr0, clob, cs, "c0")
     assert abs(N0) < 1e-9 and e0 is None and d0 == 0 and tw0 is True
     trs = [{"asset": "tk1", "side": "BUY", "price": 0.20, "size": 8}]
-    Ns, es, ds, tws = convolve(trs, clob, cs, "cs")
+    Ns, es, ds, tws, _us = convolve(trs, clob, cs, "cs")
     assert abs(Ns + 8.0) < 1e-9 and ds == -1 and abs(es - 0.80) < 1e-9 and tws is False
     trv = [{"asset": "tk0", "side": "BUY", "price": 0.40, "size": 10},
            {"asset": "tk0", "side": "BUY", "price": 0.50, "size": 30},
            {"asset": "tk0", "side": "SELL", "price": 0.90, "size": 5}]
-    Nv, ev, dv, twv = convolve(trv, clob, cs, "cv")
+    Nv, ev, dv, twv, _uv = convolve(trv, clob, cs, "cv")
     assert abs(Nv - 35.0) < 1e-9 and dv == 1 and abs(ev - 0.475) < 1e-9 and twv is True
     for bad in ([{"asset": "tk0", "side": "BUY", "price": 1.4, "size": 1}],
                 [{"asset": "tk0", "side": "HOLD", "price": 0.5, "size": 1}],
@@ -1183,9 +1240,82 @@ def _selftest():
         import pyarrow.parquet as pq
         back = pq.read_table(pth).to_pylist()
         assert len(back) == 2 and back[0]["clv"] == 0.25 and back[1]["entry_vwap"] is None
-        parquet_state = "OK"
+        assert "n_trades_used_p11" not in back[0]          # Prohod A: kolonki net (frozen-sovmestimo)
+        rows_p11 = [dict(rows_pq[0], n_trades_used_p11=2), dict(rows_pq[1], n_trades_used_p11=0)]
+        pth2 = os.path.join(tmpdir, "t_p11.parquet")
+        write_pairs_parquet(pth2, rows_p11, p11=True)
+        back2 = pq.read_table(pth2).to_pylist()
+        assert back2[0]["n_trades_used_p11"] == 2 and list(back2[0].keys()).index("n_trades_used_p11") == 5
+        parquet_state = "OK (+p11 col posle n_trades)"
     except ImportError:
         parquet_state = "SKIP (pyarrow net v sandbox; na venv Johna pyarrow est')"
+
+    # ================= POPRAVKA 11: storona vhoda (oracle = p11_entry.py, frozen 2eef68c5) =================
+    import importlib.util as _ilu
+    _p11_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "p11_entry.py")
+    _spec = _ilu.spec_from_file_location("p11_entry", _p11_path)
+    _oracle = _ilu.module_from_spec(_spec); _spec.loader.exec_module(_oracle)
+    assert _oracle.DROP_REASON_P11 == DROP_REASON_P11
+    assert _oracle.EXPECTED_DROP_TO_ZERO == EXPECTED_DROP_TO_ZERO
+    assert _oracle.TERM_HI == TERM_HI and _oracle.TERM_LO == TERM_LO
+
+    def _cvt(oi, side, price, size):   # convolve chitaet asset/outcomeIndex
+        return {"asset": ("tk0" if oi == 0 else "tk1"), "outcomeIndex": oi,
+                "side": side, "price": price, "size": size}
+    def _ort(oi, side, price, size):   # oracle chitaet oi/side/price/size
+        return {"oi": oi, "side": side, "price": price, "size": size}
+    def _apN(a, b, eps=1e-9):
+        return (a is None and b is None) or (a is not None and b is not None and abs(a - b) <= eps)
+
+    def _xcheck(trades, p_ref):
+        cv = [_cvt(*x) for x in trades]; orc = [_ort(*x) for x in trades]
+        r = _oracle.recompute_pair(orc, p_ref)
+        # Prohod A (p11=False): entry POBITOVO == zamorozhennyy == oracle entry_a
+        Na, ea, da, _, ua = convolve(cv, clob, cs, "cx", p11=False)
+        assert _apN(ea, r["entry_a"]), ("A", ea, r["entry_a"], trades)
+        assert (da == 0) == r["net_zero"], (da, r, trades)
+        # Prohod B (p11=True): entry_b/used/drop == oracle
+        Nb, eb, db, _, ub = convolve(cv, clob, cs, "cx", p11=True)
+        assert _apN(eb, r["entry_b"]), ("B", eb, r["entry_b"], trades)
+        assert ub == r["n_trades_used_p11"], ("used", ub, r, trades)
+        drop_b = (abs(Nb) >= 1e-9 and eb is None)
+        assert drop_b == r["dropped_p11"], ("drop", drop_b, r, trades)
+        return r
+
+    r1 = _xcheck([(0, "BUY", 0.40, 10)], 0.65)            # obychnaya: A==B, used=1
+    assert r1["n_trades_used_p11"] == 1 and not r1["dropped_p11"]
+    r2 = _xcheck([(1, "BUY", 0.999, 5)], 0.5)            # oi=1 SYRAYA 0.999 -> DROP (dyra 0.999)
+    assert r2["dropped_p11"] and r2["n_trades_used_p11"] == 0 and r2["direction"] != 0
+    r3 = _xcheck([(1, "BUY", 0.001, 5)], 0.5)            # oi=1 SYRAYA 0.001 -> DROP
+    assert r3["dropped_p11"] and r3["n_trades_used_p11"] == 0
+    r4 = _xcheck([(0, "BUY", 0.9995, 10), (0, "BUY", 0.40, 30)], 0.65)   # term iskl., used=1, ne drop
+    assert r4["n_trades_used_p11"] == 1 and not r4["dropped_p11"] and abs(r4["entry_b"] - 0.40) < 1e-9
+    r5 = _xcheck([(0, "BUY", 0.5, 5), (0, "SELL", 0.6, 5)], 0.5)         # net-zero -> ne P11
+    assert r5["net_zero"] and not r5["dropped_p11"]
+    r6 = _xcheck([(0, "BUY", 0.40, 10), (0, "BUY", 0.50, 30)], 0.65)     # A ne menyaet frozen entry
+    assert abs(r6["entry_a"] - 0.475) < 1e-9
+
+    # drop-gate na sinteticheskom nabore: rovno K par s pustym vhodom
+    K = 7
+    synth = [[(1, "BUY", 0.999, 5)] for _ in range(K)] + [[(0, "BUY", 0.40, 10)] for _ in range(3)]
+    drop_cnt = 0
+    for tr_ in synth:
+        cvv = [_cvt(*x) for x in tr_]
+        Nb, eb, db, _, ub = convolve(cvv, clob, cs, "cg", p11=True)
+        if abs(Nb) >= 1e-9 and eb is None:
+            drop_cnt += 1
+    assert drop_cnt == K, drop_cnt
+    assert _oracle.check_drop_gate(drop_cnt, expected=K) is True
+    try:
+        _oracle.check_drop_gate(drop_cnt + 1, expected=K); assert False
+    except SystemExit:
+        pass
+    assert _oracle.assert_ntrades_sum_invariant(123, 123) is True
+    try:
+        _oracle.assert_ntrades_sum_invariant(123, 124); assert False
+    except SystemExit:
+        pass
+    p11_state = "OK (oracle 2eef68c5: A==frozen, B==oracle, used, dyra-0.999, oi=1x2, gate, sum-inv)"
 
     # throttle concurrency
     errs = []
@@ -1203,7 +1333,7 @@ def _selftest():
 
     print("SELFTEST OK: tier/slug/window + dryrun-switch + parse_clob + idx + svyortka(sec.3) + "
           "clv(sec.4) + etalon(sec.2+term-excl) + winner + dopusk-tira(sec.5) + quantile + "
-          "pull_trades-completeness + throttle + fail-fast | parquet=%s" % parquet_state)
+          "pull_trades-completeness + throttle + fail-fast | parquet=%s | P11=%s" % (parquet_state, p11_state))
 
 
 def _arg(name, default=None):
@@ -1222,6 +1352,7 @@ def main():
     data_dir = _arg("data-dir", "data")
     if isinstance(data_dir, bool):
         data_dir = "data"
+    p11 = bool(_arg("p11"))   # POPRAVKA 11: Prohod B (pravilo ON). Bez flaga -- Prohod A (zamorozhennyy).
     if mode == "selftest":
         _selftest()
     elif mode == "enum":
@@ -1229,11 +1360,11 @@ def main():
         mode_enum(data_dir)
     elif mode == "run":
         set_window("2026-02-01", "2026-04-28")
-        collect(data_dir, ENUM_END_MIN, ENUM_END_MAX, do_control=True, dry=False)
+        collect(data_dir, ENUM_END_MIN, ENUM_END_MAX, do_control=True, dry=False, p11=p11)
     elif mode == "dryrun":
         # DOBAVKA2: srez 2026-02-01..2026-02-07 (poluotkryto do 02-08). Kontrol 4068 NE primenyaetsya.
         set_window("2026-02-01", "2026-02-08")
-        collect(data_dir, "2026-01-01", "2026-02-22", do_control=False, dry=True)
+        collect(data_dir, "2026-01-01", "2026-02-22", do_control=False, dry=True, p11=p11)
     else:
         print("neizvestnyy rezhim: %s" % mode); print(__doc__)
 
