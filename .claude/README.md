@@ -1,40 +1,48 @@
-# Claude Smart Starter
+# Agent Rules Pack
 
-A small, reusable Claude Code configuration for a solo developer.
+Переносимый набор правил для агента-разработчика (Claude Code, Hermes/pi-chat,
+Cursor, Codex и любой другой раннер, который читает файлы правил из репозитория).
 
-## What it adds
+Правила универсальные: здесь нет ни одного упоминания конкретного языка,
+фреймворка, домена или проекта. Каждый пункт выведен из настоящего сбоя, который
+стоил часа или суток работы, и переформулирован так, чтобы работать в любом
+проекте.
 
-- one short always-on rule file;
-- five narrow, on-demand skills;
-- one read-only review subagent;
-- routing and behavior cases for static review.
+## Состав
 
-It intentionally contains no framework, language, provider, deployment, or project-specific assumptions.
+```
+rules/00-working-contract.md      всегда включено: что считать сделанным
+rules/01-shell-and-runtime.md     всегда включено: оболочка, кодировки, живость процесса
+rules/02-multi-agent-execution.md всегда включено: несколько исполнителей на одном репозитории
+agents/critical-reviewer.md       read-only ревьюер (подагент)
+skills/repository-change/         дисциплина изменений кода
+skills/decision-journal/          журналы решений и измерений, только дописывание
+skills/measurement-probes/        проектирование измерительных проб и критериев приёмки
+skills/long-running-jobs/         прогоны дольше 15 минут, сторож живости, ночные запуски
+skills/data-contracts/            схемы, пропуски, идемпотентность, водяные знаки
+skills/statistical-methodology/   любой код, который считает средние, ошибки и выносит вердикт
+skills/safety-rails/              секреты, необратимые действия, лимиты внешних API
+skills/backend-security-guard/    бэкенд с чувствительными данными
+skills/frontend-product-quality/  продуктовый UI
+skills/terminal-ui/               CLI и терминальные интерфейсы
+skills/context-handoff/           передача контекста в новую сессию
+```
 
-## Install
+## Установка
 
-Copy this `.claude` directory into the root of a Git repository, then start a new Claude Code session. If this is the first `.claude/agents` directory created during a running session, restart Claude Code once.
+Скопируй каталог (`.claude` или `.hermes`) в корень репозитория и начни новую
+сессию агента. Если каталог `agents/` создан впервые за время работающей
+сессии — перезапусти агента один раз.
 
-## Recommended use
+Если раннер не поддерживает такие каталоги, но читает `AGENTS.md` — вставь в
+`AGENTS.md` содержимое `AGENTS_APPEND.md` из архива.
 
-Let Claude invoke skills automatically when descriptions match, or invoke manually:
+## Принципы
 
-- `/repository-change` — disciplined code changes;
-- `/backend-security-guard` — security-sensitive backend work;
-- `/product-idea-challenger` — product ideas and prioritization;
-- `/frontend-product-quality` — product UI and UX work;
-- `/context-handoff` — compact handoff before `/clear` or switching sessions.
-
-Ask for the reviewer explicitly when useful:
-
-> Use the critical-reviewer agent to review the current change.
-
-## Design principles
-
-- No automatic hooks.
-- No bundled executable scripts.
-- No network or production commands.
-- No forced tool or framework choices.
-- Skills load only when relevant.
-- The reviewer is read-only.
-- Project-specific rules belong in that project's `CLAUDE.md`, not in this reusable pack.
+- Никаких хуков и исполняемых скриптов внутри пака.
+- Никаких сетевых и продакшн-команд.
+- Правила «всегда включено» — только в `rules/`, их три и они короткие.
+- Навыки подгружаются по описанию, когда задача совпала.
+- Ревьюер только читает.
+- Специфика конкретного проекта живёт в `CLAUDE.md` / `AGENTS.md` этого
+  проекта, а не в этом паке.
