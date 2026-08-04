@@ -33,6 +33,7 @@ from src.collect.ws_collector import (
     MARKETS_PER_CONN,
     interpret_message,
     _discover,
+    _rediscovery_due,
     _partition_market,
     _partition_tokens,
     parse_args,
@@ -774,6 +775,22 @@ class TestSyncWriter(unittest.TestCase):
 
 class TestVertical(unittest.TestCase):
     """ЗАДАЧА 2: неизвестная вертикаль -- жёсткая ошибка, не молчаливый crypto."""
+
+    def test_rediscovery_due_env_switch(self) -> None:
+        import os
+
+        old = os.environ.pop("PM_DISCOVER_ONCE", None)
+        try:
+            self.assertTrue(_rediscovery_due(60.0, 0.0))
+            os.environ["PM_DISCOVER_ONCE"] = "1"
+            self.assertFalse(_rediscovery_due(60.0, 0.0))
+            os.environ.pop("PM_DISCOVER_ONCE")
+            self.assertFalse(_rediscovery_due(59.9, 0.0))
+        finally:
+            if old is None:
+                os.environ.pop("PM_DISCOVER_ONCE", None)
+            else:
+                os.environ["PM_DISCOVER_ONCE"] = old
 
     def test_unknown_vertical_rejected_in_discover(self) -> None:
         with self.assertRaises(ValueError):

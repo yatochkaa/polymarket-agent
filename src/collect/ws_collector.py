@@ -96,6 +96,14 @@ LIVENESS_CHECK_S = 30.0  # интервал проверки сторожем
 LIVENESS_STALL_S = 120.0  # ни сообщения, ни снимки дольше этого = зависание
 LIVENESS_EXIT_CODE = 3  # код выхода по живости (внешний демон ждёт ненулевой)
 MARKET_RECHECK_S = 60.0
+
+
+def _rediscovery_due(now: float, last_recheck: float) -> bool:
+    if os.environ.get("PM_DISCOVER_ONCE") == "1":
+        return False
+    return now - last_recheck >= MARKET_RECHECK_S
+
+
 EXPORT_INTERVAL_S = 60.0
 STATS_INTERVAL_S = 5.0
 MAX_DEDUP = 20000
@@ -1330,7 +1338,7 @@ async def _run_connection(
                     await asyncio.sleep(0)
 
                     now = time.monotonic()
-                    if now - last_recheck >= MARKET_RECHECK_S:
+                    if _rediscovery_due(now, last_recheck):
                         last_recheck = now
                         if await _resubscribe(
                             handler, collector, n_conns=n_conns, partition=partition,
