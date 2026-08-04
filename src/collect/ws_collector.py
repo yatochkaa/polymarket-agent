@@ -104,6 +104,17 @@ def _rediscovery_due(now: float, last_recheck: float) -> bool:
     return now - last_recheck >= MARKET_RECHECK_S
 
 
+# Default берётся из EXPORT_INTERVAL_S, определённой ниже, в момент вызова.
+def _periodic_export_due(now: float, last_export: float) -> bool:
+    raw = os.environ.get("PM_EXPORT_INTERVAL_S")
+    interval = EXPORT_INTERVAL_S if raw is None else float(raw)
+    if interval < 0.0:
+        raise ValueError("PM_EXPORT_INTERVAL_S must be >= 0")
+    if interval == 0.0:
+        return False
+    return now - last_export >= interval
+
+
 EXPORT_INTERVAL_S = 60.0
 STATS_INTERVAL_S = 5.0
 MAX_DEDUP = 20000
@@ -1348,7 +1359,7 @@ async def _run_connection(
                             await ws.send(
                                 json.dumps({"type": "market", "assets_ids": handler.tokens})
                             )
-                    if now - last_export >= EXPORT_INTERVAL_S:
+                    if _periodic_export_due(now, last_export):
                         last_export = now
                         collector.writer.submit_call(store.export_tables, export_root)
                     if now - last_stats >= STATS_INTERVAL_S:
