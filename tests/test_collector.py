@@ -14,8 +14,11 @@ import contextlib
 import contextlib
 import json
 import tempfile
+import time
 import unittest
 from pathlib import Path
+
+import duckdb
 
 from src.collect import store
 from src.collect.recon import LiveBook, recon_check
@@ -25,6 +28,8 @@ from src.collect.ws_collector import (
     BookEvent,
     DeltaEvent,
     TradeEvent,
+    LIVENESS_EXIT_CODE,
+    LivenessWatchdog,
     MARKETS_PER_CONN,
     interpret_message,
     _discover,
@@ -895,6 +900,126 @@ class TestBatchWrite(unittest.TestCase):
             )
             w.close()
             self.assertEqual(n, 500)
+
+
+class TestLivenessWatchdog(unittest.TestCase):
+    """Сторож живости (2026-08-04): если НИ счётчик сообщений, НИ счётчик
+    снимков не растут дольше порога — процесс обязан завершиться ненулевым
+    кодом (LIVENESS_EXIT_CODE), чтобы tennis_daemon.ps1 перезапустил его.
+
+    На старом коде (без сторожа) этот класс не существует — тест не
+    проходит (ImportError). Зависание 03.08 01:00:25: процесс жил 7 часов
+    при CPU 1.39 ядра и нулевом приёме, внешний рестарт не сработал.
+    """
+
+    def test_stall_exits_with_nonzero_code(self) -> None:
+        col = Collector(object(), now_ms=1)
+        calls: list[int] = []
+        w = LivenessWatchdog(
+            col,
+            check_interval_s=0.05,
+            stall_s=0.2,
+            exit_fn=calls.append,
+        )
+        w.start()
+        try:
+            time.sleep(0.6)  # молчание дольше порога
+        finally:
+            w.stop()
+        self.assertTrue(calls, "сторож обязан сработать при молчании дольше порога")
+        self.assertNotEqual(calls[0], 0)
+        self.assertEqual(calls[0], LIVENESS_EXIT_CODE)
+
+    def test_growth_prevents_fire(self) -> None:
+        """Рост хотя бы одного счётчика чаще порога — сторожа не будит."""
+        col = Collector(object(), now_ms=1)
+        calls: list[int] = []
+        w = LivenessWatchdog(
+            col,
+            check_interval_s=0.05,
+            stall_s=0.2,
+            exit_fn=calls.append,
+        )
+        w.start()
+        try:
+            t0 = time.monotonic()
+            while time.monotonic() - t0 < 0.5:
+                col.stats["messages"] += 1
+                col.stats["snapshots"] += 1
+                time.sleep(0.02)
+        finally:
+            w.stop()
+        self.assertEqual(calls, [])
+
+    def test_stop_prevents_fire_on_graceful_stop(self) -> None:
+        """Штатное завершение по --minutes: stop() до порога — без выхода."""
+        col = Collector(object(), now_ms=1)
+        calls: list[int] = []
+        w = LivenessWatchdog(
+            col,
+            check_interval_s=0.05,
+            stall_s=0.25,
+            exit_fn=calls.append,
+        )
+        w.start()
+        time.sleep(0.08)  # меньше порога
+        w.stop()          # run() зовёт stop() в начале finally
+        time.sleep(0.4)   # дольше порога, но сторож уже остановлен
+        self.assertEqual(calls, [])
+
+
+class TestSchemaMigration(unittest.TestCase):
+    """Миграция схемы: ADD COLUMN для колонок, отсутствующих в существующей
+    таблице. recon_checks в data/pm.duckdb создана до коммита 6ba0e29 и не
+    имеет колонки seq — export_tables падал по 1051 разу за прогон (SELECT
+    seq). CREATE TABLE IF NOT EXISTS колонок не добавляет."""
+
+    @staticmethod
+    def _create_legacy_db(db_path: Path) -> None:
+        """База со СТАРОЙ схемой recon_checks (без seq), как до 6ba0e29."""
+        con = duckdb.connect(str(db_path))
+        con.execute(
+            "CREATE TABLE recon_checks ("
+            "ts_recv_ms BIGINT NOT NULL, token_id VARCHAR NOT NULL, "
+            "n_levels_ours BIGINT NOT NULL, n_levels_theirs BIGINT NOT NULL, "
+            "max_abs_diff_price DOUBLE NOT NULL, max_abs_diff_size DOUBLE NOT NULL, "
+            "verdict VARCHAR NOT NULL, PRIMARY KEY (ts_recv_ms, token_id))"
+        )
+        con.execute(
+            "INSERT INTO recon_checks VALUES (1, 'up1', 2, 2, 0.0, 0.0, 'match')"
+        )
+        con.close()
+
+    def test_connect_adds_missing_seq_column(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "pm.duckdb"
+            self._create_legacy_db(db_path)
+            con = store.connect(db_path)  # миграция при открытии
+            try:
+                cols = {
+                    str(r[0]): str(r[1])
+                    for r in con.execute("DESCRIBE recon_checks").fetchall()
+                }
+                self.assertIn("seq", cols)
+                self.assertEqual(cols["seq"], "BIGINT")
+                # существующие строки выживают (seq у них NULL)
+                self.assertEqual(
+                    con.execute("SELECT COUNT(*) FROM recon_checks").fetchone()[0], 1
+                )
+            finally:
+                con.close()
+
+    def test_export_tables_passes_after_migration(self) -> None:
+        """export_tables падал на SELECT seq; после миграции проходит."""
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "pm.duckdb"
+            self._create_legacy_db(db_path)
+            con = store.connect(db_path)
+            try:
+                out = store.export_tables(con, Path(td) / "out")
+            finally:
+                con.close()
+            self.assertIsNotNone(out["recon_checks"])
 
 
 if __name__ == "__main__":

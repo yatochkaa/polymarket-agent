@@ -788,3 +788,65 @@ C5 сравнил два одиночных прогона на разных н�
 ```
 python -m unittest discover -s tests -v   # 152 OK
 ```
+
+## 2026-08-04 — сторож живости + миграция схемы (зависание 03.08 01:00:25)
+
+### Контекст
+Суточный прогон 03.08 18:05 -> 04.08 08:19 остановился на приёме в 01:00:25
+(последний stats в `data/logs/tennis_20260803_180515.err.log:46995`), дальше
+7 часов процесс был жив и жег CPU (11195 s в 20:19 -> 70498 s в 08:08) при
+формально живом process — внешний рестарт из `tennis_daemon.ps1` не сработал.
+Внешний цикл перезапускает только при ненулевом коде возврата.
+
+Вторая находка: `data/pm.duckdb` таблица `recon_checks` создана ДО коммита
+6ba0e29 (нет колонки `seq`). `export_tables` падал на `SELECT seq` с первого же
+старта (лог, строка 219: `Binder Error: Table "recon_checks" does not have a
+column with name "seq"`). `CREATE TABLE IF NOT EXISTS` колонок не добавляет.
+Счётчик падений export_tables за прогон совпадает с указанным в задаче
+(~1051).
+
+### Сделано
+- `src/collect/ws_collector.py` — `LivenessWatchdog`:
+  - отдельный поток (не asyncio-задача: зависание заморозило цикл событий,
+    задача не сработала бы); интервал проверки `LIVENESS_CHECK_S = 30.0`;
+  - правило: если НИ `stats["messages"]`, НИ `stats["snapshots"]` не выросли
+    за `LIVENESS_STALL_S = 120.0` — пишет в лог оба счётчика, время последнего
+    роста и причину, затем `os._exit(LIVENESS_EXIT_CODE = 3)` (ненулевой код,
+    чтобы `tennis_daemon.ps1` перезапустил);
+  - константы на уровне модуля рядом с `SILENCE_THRESHOLD_S`;
+  - штатное завершение по `--minutes` НЕ срабатывает: `run()` зовёт
+    `watchdog.stop()` в начале `finally` (до финальной записи/экспорта);
+  - `run()`: сторож стартует после `print` до `try`, останавливается в `finally`.
+- `src/collect/store.py` — `migrate_schema(con)`:
+  - при открытии базы фактический набор колонок каждой таблицы сверяется
+    с ожидаемым (`schema.TABLES`), отсутствующие добавляются
+    `ALTER TABLE ... ADD COLUMN` (duckdb не принимает constraints в ADD COLUMN
+    — тип берётся без ` NOT NULL`, существующие строки получают NULL);
+  - вызывается в `connect()` и в потоке `StoreWriter._run()`.
+- `tests/test_collector.py`:
+  - `TestLivenessWatchdog`: на старом коде не существует (тест не проходит);
+    stall -> `LIVENESS_EXIT_CODE` (ненулевой); рост счётчиков не срабатывает;
+    `stop()` при штатном завершении не срабатывает;
+  - `TestSchemaMigration`: база со старой `recon_checks` (без `seq`)
+    открывается через `store.connect`, колонка добавляется, `export_tables`
+    проходит.
+
+### Проверка
+- Миграция проверена на КОПИИ живой `data/pm.duckdb`: `seq` добавлен
+  (`BIGINT`), 688 строк `recon_checks` сохранены, `export_tables` завершается
+  с parquet-файлом. Живая БД не трогалась (миграция применится при следующем
+  открытии).
+- `python -m unittest discover -s tests -v` -> **157 OK**.
+
+### Не сделано и почему
+- Причина зависания 01:00:25 НЕ расследовалась: это отдельная следующая задача
+  (указано в задании).
+- Скрипт запуска (`tennis_daemon.ps1`) не запускался (за человеком по AGENTS.md);
+  команда приведена в ответе.
+- Коммит/пуш не выполнялись (AGENTS.md: не коммитить).
+
+### Команды
+```
+powershell -ExecutionPolicy Bypass -File probes/deepseek/tennis_daemon.ps1
+python -m unittest discover -s tests -v   # 157 OK
+```

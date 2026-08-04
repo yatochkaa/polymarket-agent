@@ -38,6 +38,7 @@ import argparse
 import asyncio
 import json
 import logging
+import os
 import random
 import subprocess
 import threading
@@ -86,6 +87,14 @@ RECONNECT_MAX_S = 60.0
 # Мягкий флаг тишины: молчащий рынок НЕ обязан быть разрывом (порог не
 # проверен на живых данных). Рынки up/down живут 5-15 минут и умирают тихо.
 SILENCE_THRESHOLD_S = 120.0
+# Сторож живости (рядом с порогами тишины): зависание 03.08 01:00:25 держало
+# процесс живым 7 часов (CPU 1.39 ядра) при формально живом process —
+# внешний рестарт не срабатывал. Сторож в ОТДЕЛЬНОМ потоке (не задача цикла
+# событий: тот самый завис вместе с приёмом) завершает процесс ненулевым
+# кодом, чтобы tennis_daemon.ps1 перезапустил коллектор.
+LIVENESS_CHECK_S = 30.0  # интервал проверки сторожем
+LIVENESS_STALL_S = 120.0  # ни сообщения, ни снимки дольше этого = зависание
+LIVENESS_EXIT_CODE = 3  # код выхода по живости (внешний демон ждёт ненулевой)
 MARKET_RECHECK_S = 60.0
 EXPORT_INTERVAL_S = 60.0
 STATS_INTERVAL_S = 5.0
@@ -889,6 +898,90 @@ class Collector:
         self._resync_from = {t: ts_to_ms for t in tokens}
 
 
+def _iso_ms(ms: int) -> str:
+    """epoch ms -> 'YYYY-MM-DD HH:MM:SS' UTC (для строки сторожа живости)."""
+    return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(ms / 1000.0))
+
+
+def _exit_process(code: int) -> None:
+    """Безусловный выход процесса: мимо finally и writer-потока."""
+    os._exit(code)
+
+
+class LivenessWatchdog:
+    """Сторож живости коллектора (задача 2026-08-04).
+
+    Отдельный поток (не задача цикла событий): зависание 03.08 01:00:25
+    заморозило цикл событий вместе с приёмом (последний stats 01:00:25,
+    дальше 7 часов процесс жил на CPU) — asyncio-задача не сработала бы.
+
+    Правило: если НИ счётчик принятых сообщений, НИ счётчик записанных
+    снимков не выросли за LIVENESS_STALL_S — пишет в лог оба счётчика,
+    время последнего роста и причину, затем завершает процесс кодом
+    LIVENESS_EXIT_CODE (ненулевым), чтобы tennis_daemon.ps1 перезапустил.
+
+    Штатное завершение по --minutes НЕ срабатывает: run() зовёт stop()
+    в начале finally, поток просыпается от события и выходит без вызова
+    exit_fn.
+    """
+
+    def __init__(
+        self,
+        collector: Collector,
+        *,
+        check_interval_s: float = LIVENESS_CHECK_S,
+        stall_s: float = LIVENESS_STALL_S,
+        exit_fn: Any = None,
+    ) -> None:
+        self._collector = collector
+        self._check_s = check_interval_s
+        self._stall_s = stall_s
+        self._exit_fn = exit_fn if exit_fn is not None else _exit_process
+        self._stop = threading.Event()
+        self._thread = threading.Thread(
+            target=self._run, name="liveness-watchdog", daemon=True
+        )
+
+    def start(self) -> None:
+        self._thread.start()
+
+    def stop(self) -> None:
+        """Штатная остановка (--minutes): сторож выходит без срабатывания."""
+        self._stop.set()
+        self._thread.join(timeout=self._check_s + 1.0)
+
+    def _run(self) -> None:
+        last_growth_ms = utc_ms()
+        last_messages = int(self._collector.stats["messages"])
+        last_snapshots = int(self._collector.stats["snapshots"])
+        while not self._stop.wait(self._check_s):
+            now_ms = utc_ms()
+            messages = int(self._collector.stats["messages"])
+            snapshots = int(self._collector.stats["snapshots"])
+            if messages != last_messages or snapshots != last_snapshots:
+                last_growth_ms = now_ms
+                last_messages = messages
+                last_snapshots = snapshots
+                continue
+            stalled_ms = now_ms - last_growth_ms
+            if stalled_ms >= self._stall_s * 1000:
+                reason = (
+                    f"ни приём сообщений, ни запись снимков не росли "
+                    f"{stalled_ms / 1000.0:.1f} с подряд (лимит {self._stall_s:.1f} с)"
+                )
+                log.error(
+                    "СТОП живости: %s messages=%d snapshots=%d "
+                    "last_growth_ms=%d last_growth=%s",
+                    reason,
+                    messages,
+                    snapshots,
+                    last_growth_ms,
+                    _iso_ms(last_growth_ms),
+                )
+                self._exit_fn(LIVENESS_EXIT_CODE)
+                return
+
+
 class WSHandler:
     """Сетевой слой: разбор сообщений и запись в collector."""
 
@@ -1354,6 +1447,9 @@ async def run(
         flush=True,
     )
 
+    watchdog = LivenessWatchdog(collector)
+    watchdog.start()
+
     exit_reason = "user_stop"
     try:
         if n_conns > 1:
@@ -1391,6 +1487,11 @@ async def run(
         exit_reason = f"error: {type(exc).__name__}: {exc}"
         log.exception("коллектор упал")
     finally:
+        # Сторож останавливается ДО финальной записи/экспорта: при штатном
+        # завершении (--minutes, KeyboardInterrupt) тихая пауза не должна
+        # превращаться в срабатывание живости. При ЗАВИСАНИИ сюда не дойдём —
+        # сторож сам завершит процесс ненулевым кодом.
+        watchdog.stop()
         now = utc_ms()
         try:
             for conn_id in sorted(collector.conn_stats):

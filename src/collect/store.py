@@ -67,12 +67,52 @@ def build_ddl() -> str:
     return "\n".join(parts)
 
 
+def _column_type_for_add(col_type: str) -> str:
+    """Тип колонки для ALTER TABLE ... ADD COLUMN: duckdb не принимает
+    constraints в ADD COLUMN (ParserException 'Adding columns with constraints
+    not yet supported'). В schema.py типы — слово + опциональный ' NOT NULL';
+    constraint отрезаем, само слово типа сохраняется."""
+    t = col_type.strip()
+    suffix = " NOT NULL"
+    if t.upper().endswith(suffix):
+        t = t[: -len(suffix)].rstrip()
+    return t
+
+
+def migrate_schema(con: duckdb.DuckDBPyConnection) -> None:
+    """Добавляет отсутствующие колонки существующих таблиц.
+
+    CREATE TABLE IF NOT EXISTS создаёт таблицу только целиком и НЕ добавляет
+    колонки к уже созданной. recon_checks в data/pm.duckdb создана до коммита
+    6ba0e29 (без колонки seq): export_tables и суточная сводка падали на
+    SELECT seq по 1051 разу за прогон. Здесь фактический набор колонок каждой
+    таблицы сверяется с ожидаемым (schema.TABLES), недостающие добавляются
+    через ALTER TABLE ... ADD COLUMN. Тип constraints теряется (см.
+    _column_type_for_add): существующие строки получают NULL.
+    """
+    for table, (cols, _key) in schema.TABLES.items():
+        if not table_exists(con, table):
+            continue
+        actual = {
+            str(row[0]) for row in con.execute(f"DESCRIBE {table}").fetchall()
+        }
+        for col, col_type in cols.items():
+            if col in actual:
+                continue
+            add_type = _column_type_for_add(col_type)
+            con.execute(
+                f"ALTER TABLE {table} ADD COLUMN {col} {add_type}"
+            )
+            log.warning("миграция: %s.%s добавлена (%s)", table, col, add_type)
+
+
 def connect(db_path: Path = DEFAULT_DB_PATH) -> duckdb.DuckDBPyConnection:
     """Открывает duckdb и гарантирует схему коллектора."""
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect(str(db_path))
     con.execute(build_ddl())
+    migrate_schema(con)
     return con
 
 
@@ -153,6 +193,7 @@ class StoreWriter:
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         con = duckdb.connect(str(self._db_path))
         con.execute(build_ddl())
+        migrate_schema(con)
         try:
             batch: list[tuple[str, dict[str, Any]]] = []
             while True:
