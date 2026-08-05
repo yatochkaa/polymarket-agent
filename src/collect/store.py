@@ -79,7 +79,178 @@ def _column_type_for_add(col_type: str) -> str:
     return t
 
 
-def migrate_schema(con: duckdb.DuckDBPyConnection) -> None:
+def _create_table_sql(table: str, cols: dict[str, str], key: tuple[str, ...]) -> str:
+    """CREATE TABLE ... (без IF NOT EXISTS) для одной таблицы."""
+    key_sql = ", ".join(key)
+    return (
+        f"CREATE TABLE {table} (\n"
+        f"    {_columns_ddl(cols)},\n"
+        f"    PRIMARY KEY ({key_sql})\n"
+        f");"
+    )
+
+
+def actual_primary_key(con: duckdb.DuckDBPyConnection, table: str) -> list[str]:
+    """Колонки фактического первичного ключа таблицы (в порядке позиций)."""
+    rows = con.execute(
+        "SELECT column_name FROM information_schema.key_column_usage "
+        "WHERE table_name = ? ORDER BY ordinal_position",
+        [table],
+    ).fetchall()
+    return [str(r[0]) for r in rows]
+
+
+PRE_SEQ_EXPORT_NAME = "recon_checks_pre_seq.parquet"
+
+
+def _recon_pre_seq_path(db_path: Path) -> Path:
+    """Путь выгрузки строк recon_checks с seq IS NULL.
+
+    Для живой базы data/pm.duckdb это ровно data/validate/recon_checks_pre_seq.parquet.
+    Вывод базируется на каталоге самой базы, чтобы тесты на временных базах не
+    писали в рабочий каталог проекта.
+    """
+    return Path(db_path).parent / "validate" / PRE_SEQ_EXPORT_NAME
+
+
+def _dump_recon_pre_seq(
+    con: duckdb.DuckDBPyConnection,
+    path: Path,
+) -> tuple[int, dict[str, int]]:
+    """Выгружает все строки recon_checks с seq IS NULL в parquet «как есть».
+
+    Returns:
+        (число строк, разбивка по verdict).
+    Raises:
+        FileExistsError: файл уже существует — молча не перезаписываем.
+        Exception: любая ошибка выгрузки или несовпадение числа строк.
+    """
+    if path.exists():
+        raise FileExistsError(
+            f"выгрузка recon_checks.pre_seq: файл уже существует ({path}) — "
+            "запрещено перезаписывать молча, миграция не выполняется"
+        )
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    cols = list(schema.RECON_CHECKS_COLUMNS.keys())
+    col_sql = ", ".join(cols)
+    rows = con.execute(
+        f"SELECT {col_sql} FROM recon_checks WHERE seq IS NULL"
+    ).fetchall()
+    n = len(rows)
+    verdict_idx = cols.index("verdict")
+    breakdown: dict[str, int] = {}
+    for r in rows:
+        v = str(r[verdict_idx])
+        breakdown[v] = breakdown.get(v, 0) + 1
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        table = pa.Table.from_pylist([dict(zip(cols, r)) for r in rows])
+        pq.write_table(table, path)
+    except Exception:
+        log.exception("выгрузка recon_checks.pre_seq не удалась: %s", path)
+        raise
+    written = pq.ParquetFile(path).metadata.num_rows
+    if written != n:
+        raise RuntimeError(
+            f"контроль выгрузки recon_checks.pre_seq: в файле {written} строк, "
+            f"ожидалось {n} — миграция прервана"
+        )
+    return n, breakdown
+
+
+def _ensure_recon_checks_key(
+    con: duckdb.DuckDBPyConnection,
+    pre_seq_path: Path,
+) -> None:
+    """Пересоздаёт recon_checks с первичным ключом (token_id, seq).
+
+    Живая таблица (data/pm.duckdb) была создана с ПК (token_id, ts_recv_ms),
+    а не (token_id, seq) — из-за расхождения с schema.TABLES пачка строк с
+    разными seq в одну миллисекунду проходила внутренний дедуп, но на уровне
+    БД конфликтовала, INSERT OR IGNORE бросал ConstraintException, транзакция
+    откатывалась, и _flush_guarded молча терял ВЕСЬ пакет (Дефект А).
+
+    CREATE TABLE IF NOT EXISTS не меняет ПК существующей таблицы, поэтому для
+    расхождения выполняем явную миграцию: новая таблица -> перенос строк ->
+    переименование. Строки с seq IS NOT NULL сохраняются (первая по ключу).
+
+    Строки с seq = NULL НЕ могут попасть под NOT NULL ПК (token_id, seq) и
+    были бы потеряны — поэтому ПЕРЕД пересозданием они в обязательном порядке
+    выгружаются в pre_seq_path (со всеми колонками «как есть»). Порядок:
+      1. если файл уже существует — громкий отказ (не перезаписываем молча);
+      2. выгрузка; при любой ошибке выгрузки миграция НЕ выполняется;
+      3. контроль числа строк в файле == числу строк с seq IS NULL;
+      4. только после этого — пересоздание таблицы.
+    Число выгруженных строк и разбивка по verdict логируются.
+    """
+    cols, key = schema.TABLES["recon_checks"]
+    expected = list(key)  # ("token_id", "seq")
+    existing_exists = table_exists(con, "recon_checks")
+    if existing_exists and actual_primary_key(con, "recon_checks") == expected:
+        return
+
+    new_table = "__recon_checks_new"
+    con.execute(f"DROP TABLE IF EXISTS {new_table}")
+    con.execute(_create_table_sql(new_table, cols, key))
+    col_sql = ", ".join(cols)
+    if existing_exists and count_rows_table(con, "recon_checks") > 0:
+        n_null = int(
+            con.execute(
+                f"SELECT COUNT(*) FROM recon_checks WHERE {key[1]} IS NULL"
+            ).fetchone()[0]
+        )
+        if n_null > 0:
+            n_dump, verdict_breakdown = _dump_recon_pre_seq(con, pre_seq_path)
+            log.info(
+                "recon_checks: выгружено строк с seq IS NULL: %d, "
+                "по verdict: %s (файл %s)",
+                n_dump,
+                verdict_breakdown,
+                pre_seq_path,
+            )
+        else:
+            log.info("recon_checks: строк с seq IS NULL нет — выгрузка не требуется")
+        key_cols_sql = ", ".join(key)
+        con.execute(
+            f"""
+            INSERT INTO {new_table} ({col_sql})
+            SELECT {col_sql} FROM (
+                SELECT {col_sql},
+                       row_number() OVER (
+                           PARTITION BY {key_cols_sql}
+                           ORDER BY {key_cols_sql}
+                       ) AS __rn
+                FROM recon_checks
+                WHERE {key[1]} IS NOT NULL
+            ) WHERE __rn = 1
+            """
+        )
+        con.execute("DROP TABLE recon_checks")
+        con.execute(f"ALTER TABLE {new_table} RENAME TO recon_checks")
+        log.warning(
+            "миграция: recon_checks пересоздана с primary key (%s), "
+            "строки с seq NOT NULL сохранены, seq IS NULL выгружены в %s",
+            ", ".join(key),
+            pre_seq_path,
+        )
+    else:
+        con.execute(f"ALTER TABLE {new_table} RENAME TO recon_checks")
+        log.warning(
+            "миграция: recon_checks создана с primary key (%s)",
+            ", ".join(key),
+        )
+
+
+def count_rows_table(con: duckdb.DuckDBPyConnection, table: str) -> int:
+    return int(con.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0])
+
+
+def migrate_schema(
+    con: duckdb.DuckDBPyConnection,
+    db_path: Path = DEFAULT_DB_PATH,
+) -> None:
     """Добавляет отсутствующие колонки существующих таблиц.
 
     CREATE TABLE IF NOT EXISTS создаёт таблицу только целиком и НЕ добавляет
@@ -89,6 +260,8 @@ def migrate_schema(con: duckdb.DuckDBPyConnection) -> None:
     таблицы сверяется с ожидаемым (schema.TABLES), недостающие добавляются
     через ALTER TABLE ... ADD COLUMN. Тип constraints теряется (см.
     _column_type_for_add): существующие строки получают NULL.
+
+    db_path нужен для вывода выгрузки строк с seq IS NULL (путь рядом с базой).
     """
     for table, (cols, _key) in schema.TABLES.items():
         if not table_exists(con, table):
@@ -104,6 +277,12 @@ def migrate_schema(con: duckdb.DuckDBPyConnection) -> None:
                 f"ALTER TABLE {table} ADD COLUMN {col} {add_type}"
             )
             log.warning("миграция: %s.%s добавлена (%s)", table, col, add_type)
+    # Первичный ключ recon_checks обязан быть (token_id, seq): если существующая
+    # таблица создана с другим ПК (например (token_id, ts_recv_ms)), CREATE TABLE
+    # IF NOT EXISTS его не меняет, и пачка с разными seq в одну миллисекунду
+    # откатывает всю транзакцию. Пересоздаём явной миграцией с сохранением строк
+    # и выгрузкой строк с seq IS NULL.
+    _ensure_recon_checks_key(con, _recon_pre_seq_path(db_path))
 
 
 def connect(db_path: Path = DEFAULT_DB_PATH) -> duckdb.DuckDBPyConnection:
@@ -111,8 +290,15 @@ def connect(db_path: Path = DEFAULT_DB_PATH) -> duckdb.DuckDBPyConnection:
     db_path = Path(db_path)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect(str(db_path))
-    con.execute(build_ddl())
-    migrate_schema(con)
+    try:
+        con.execute(build_ddl())
+        migrate_schema(con, db_path)
+    except Exception:
+        # Windows держит файл залоченным, пока открыто соединение: при ошибке
+        # миграции (например, файл выгрузки уже существует) закрываем, иначе
+        # последующий close()/удаление каталога упрётся в PermissionError.
+        con.close()
+        raise
     return con
 
 
@@ -130,6 +316,13 @@ class StoreWriter:
     - перед любой командой (call/submit_call) накопленная пачка
       сбрасывается в базу, поэтому чтения видят предыдущие записи;
     - INSERT OR IGNORE + PRIMARY KEY даёт идемпотентность, как и раньше.
+
+    Стойкость к потере пакета (Дефект А): _flush_guarded пробрасывает ошибку
+    пачки наверх, поэтому поток-писатель МОЖЕТ умереть. Чтобы это не подвесило
+    последующие call()/flush() на done.wait(), фатальная ошибка сохраняется в
+    self._failed: _run будит активный sync и сбрасывает очередь (каждому
+    ожидающему sync в error кладётся та же ошибка). call()/flush() тогда не
+    зависают, а поднимают одну и ту же первопричину.
     """
 
     def __init__(
@@ -142,6 +335,7 @@ class StoreWriter:
         self._db_path = Path(db_path)
         self._batch = batch
         self._queue: queue.Queue[Any] = queue.Queue()
+        self._failed: Exception | None = None
         self._thread = threading.Thread(
             target=self._run, name="store-writer", daemon=True
         )
@@ -193,7 +387,8 @@ class StoreWriter:
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         con = duckdb.connect(str(self._db_path))
         con.execute(build_ddl())
-        migrate_schema(con)
+        migrate_schema(con, self._db_path)
+        active_sync: tuple[dict[str, Any], threading.Event] | None = None
         try:
             batch: list[tuple[str, dict[str, Any]]] = []
             while True:
@@ -225,31 +420,59 @@ class StoreWriter:
                     self._flush_guarded(con, batch)
                     batch = []
                     _, fn, args, kwargs, result, done = item
+                    active_sync = (result, done)
                     try:
                         result["value"] = fn(con, *args, **kwargs)
                     except Exception as exc:  # noqa: BLE001
                         result["error"] = exc
                     finally:
                         done.set()
+                        active_sync = None
+        except Exception as exc:  # фатально: потерян пакет (Дефект А)
+            self._failed = exc
+            log.error("store-writer: поток завершился из-за потери пакета: %s", exc)
+            if active_sync is not None:
+                result, done = active_sync
+                result["error"] = exc
+                done.set()
+            self._drain_queue_abort(exc)
         finally:
             con.close()
+
+    def _drain_queue_abort(self, exc: Exception) -> None:
+        """После фатальной ошибки будит всех, кто ждёт sync в очереди."""
+        while True:
+            try:
+                item = self._queue.get_nowait()
+            except queue.Empty:
+                return
+            if item is None:
+                return
+            if item[0] == "sync":
+                result, done = item[4], item[5]
+                result["error"] = exc
+                done.set()
 
     @staticmethod
     def _flush_guarded(
         con: duckdb.DuckDBPyConnection,
         rows: list[tuple[str, dict[str, Any]]],
     ) -> None:
-        """_flush с защитой от смерти потока: ошибка пачки НЕ роняет writer.
+        """_flush с логированием размера потерянного пакета — и ЖЁСТКИМ пробросом.
 
-        Поток-писатель должен жить: если _flush упадёт без обработки, все
-        последующие writer.call() (end_session, export в finally run()) будут
-        вечно ждать done.wait() — процесс не завершится по --minutes.
-        Потерянная пачка логируется, поток продолжает принимать новые.
+        Дефект А: _flush_guarded раньше глотал исключение (_flush делает
+        ROLLBACK при ConstraintException/InvalidInputException), и весь пакет
+        терялся молча. Теперь любая ошибка пачки логируется (размер пакета) и
+        пробрасывается наружу — потеря пакета обязана быть слышимой.
         """
         try:
             StoreWriter._flush(con, rows)
-        except Exception:  # noqa: BLE001 — поток должен жить
-            log.exception("store-writer: пачка из %d строк не записана", len(rows))
+        except Exception:
+            log.exception(
+                "store-writer: ПОТЕРЯН пакет из %d строк — проброс наверх",
+                len(rows),
+            )
+            raise
 
     @staticmethod
     def _flush(

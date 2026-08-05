@@ -11,12 +11,12 @@
 """
 
 import contextlib
-import contextlib
 import json
 import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import duckdb
 
@@ -1030,7 +1030,13 @@ class TestSchemaMigration(unittest.TestCase):
     """Миграция схемы: ADD COLUMN для колонок, отсутствующих в существующей
     таблице. recon_checks в data/pm.duckdb создана до коммита 6ba0e29 и не
     имеет колонки seq — export_tables падал по 1051 разу за прогон (SELECT
-    seq). CREATE TABLE IF NOT EXISTS колонок не добавляет."""
+    seq). CREATE TABLE IF NOT EXISTS колонок не добавляет.
+
+    ДЕФЕКТ А: живая таблица была создана с ПК (token_id, ts_recv_ms) вместо
+    (token_id, seq). Теперь миграция пересоздаёт таблицу с ПК (token_id, seq)
+    и сохраняет строки с seq IS NOT NULL; строки с seq = NULL не могут войти
+    под NOT NULL ПК (token_id, seq) и отбрасываются (см. TestReconChecksKey).
+    """
 
     @staticmethod
     def _create_legacy_db(db_path: Path) -> None:
@@ -1048,6 +1054,41 @@ class TestSchemaMigration(unittest.TestCase):
         )
         con.close()
 
+    @staticmethod
+    def _create_wrong_key_db(db_path: Path) -> None:
+        """База в состоянии Дефекта А: ПОЛНАЯ схема recon_checks, но ПК
+        (token_id, ts_recv_ms) вместо (token_id, seq). Две строки с seq,
+        одна строка с seq = NULL (не может быть сохранена под новый ПК)."""
+        con = duckdb.connect(str(db_path))
+        con.execute(
+            "CREATE TABLE recon_checks ("
+            "ts_recv_ms BIGINT NOT NULL, token_id VARCHAR NOT NULL, "
+            "seq BIGINT, "
+            "n_levels_ours BIGINT NOT NULL, n_levels_theirs BIGINT NOT NULL, "
+            "max_abs_diff_price DOUBLE NOT NULL, max_abs_diff_size DOUBLE NOT NULL, "
+            "extra_ours VARCHAR, extra_theirs VARCHAR, "
+            "n_skipped_dedup_token BIGINT, verdict VARCHAR NOT NULL, "
+            "PRIMARY KEY (token_id, ts_recv_ms))"
+        )
+        con.execute(
+            "INSERT INTO recon_checks VALUES "
+            "(1, 'up1', 10, 2, 2, 0.0, 0.0, NULL, NULL, NULL, 'match'), "
+            "(2, 'up1', 11, 2, 2, 0.0, 0.0, NULL, NULL, NULL, 'match'), "
+            "(3, 'up1', NULL, 2, 2, 0.0, 0.0, NULL, NULL, NULL, 'match')"
+        )
+        con.close()
+
+    @staticmethod
+    def _primary_key(con: duckdb.DuckDBPyConnection, table: str) -> list[str]:
+        return [
+            str(r[0])
+            for r in con.execute(
+                "SELECT column_name FROM information_schema.key_column_usage "
+                "WHERE table_name = ? ORDER BY ordinal_position",
+                [table],
+            ).fetchall()
+        ]
+
     def test_connect_adds_new_recon_columns_and_dedup_table(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "pm.duckdb"
@@ -1056,7 +1097,8 @@ class TestSchemaMigration(unittest.TestCase):
             try:
                 recon_cols = {str(r[0]) for r in con.execute("DESCRIBE recon_checks").fetchall()}
                 self.assertTrue({"extra_ours", "extra_theirs", "n_skipped_dedup_token"} <= recon_cols)
-                self.assertEqual(con.execute("SELECT COUNT(*) FROM recon_checks").fetchone()[0], 1)
+                # строка с seq = NULL не может войти под новый ПК (token_id, seq)
+                self.assertEqual(con.execute("SELECT COUNT(*) FROM recon_checks").fetchone()[0], 0)
                 self.assertEqual(con.execute("SELECT COUNT(*) FROM dedup_skipped").fetchone()[0], 0)
             finally:
                 con.close()
@@ -1073,10 +1115,12 @@ class TestSchemaMigration(unittest.TestCase):
                 }
                 self.assertIn("seq", cols)
                 self.assertEqual(cols["seq"], "BIGINT")
-                # существующие строки выживают (seq у них NULL)
+                # существующая строка с seq = NULL отброшена (сохранить нельзя:
+                # seq входит в NOT NULL ПК (token_id, seq))
                 self.assertEqual(
-                    con.execute("SELECT COUNT(*) FROM recon_checks").fetchone()[0], 1
+                    con.execute("SELECT COUNT(*) FROM recon_checks").fetchone()[0], 0
                 )
+                self.assertEqual(self._primary_key(con, "recon_checks"), ["token_id", "seq"])
             finally:
                 con.close()
 
@@ -1084,13 +1128,297 @@ class TestSchemaMigration(unittest.TestCase):
         """export_tables падал на SELECT seq; после миграции проходит."""
         with tempfile.TemporaryDirectory() as td:
             db_path = Path(td) / "pm.duckdb"
-            self._create_legacy_db(db_path)
+            self._create_wrong_key_db(db_path)
             con = store.connect(db_path)
             try:
                 out = store.export_tables(con, Path(td) / "out")
             finally:
                 con.close()
             self.assertIsNotNone(out["recon_checks"])
+
+
+class TestReconChecksKeyMigration(unittest.TestCase):
+    """ДЕФЕКТ А, часть 1: живая recon_checks создана с ПК (token_id, ts_recv_ms)
+    вместо (token_id, seq). migrate_schema обязан явной миграцией пересоздать
+    таблицу с ПК (token_id, seq), сохранив накопленные строки с seq.
+
+    На старом коде этот класс не проходит: миграции пересоздания нет вообще —
+    ПК остаётся (token_id, ts_recv_ms), и пачка с разными seq в одну
+    миллисекунду откатывает всю транзакцию (ConstConstraintException в _flush).
+    """
+
+    def test_migrate_rebuilds_pk_and_preserves_seq_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "pm.duckdb"
+            TestSchemaMigration._create_wrong_key_db(db_path)
+            con = store.connect(db_path)
+            try:
+                self.assertEqual(
+                    TestSchemaMigration._primary_key(con, "recon_checks"),
+                    ["token_id", "seq"],
+                )
+                rows = con.execute(
+                    "SELECT ts_recv_ms, token_id, seq FROM recon_checks ORDER BY seq"
+                ).fetchall()
+                # строки с seq сохранены, строка с seq=NULL отброшена
+                self.assertEqual(rows, [(1, "up1", 10), (2, "up1", 11)])
+            finally:
+                con.close()
+
+    def test_pk_untouched_when_already_correct(self) -> None:
+        """Свежая база (уже ПК (token_id, seq)) не пересоздаётся и строки целы."""
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "pm.duckdb"
+            con = store.connect(db_path)
+            try:
+                self.assertEqual(
+                    TestSchemaMigration._primary_key(con, "recon_checks"),
+                    ["token_id", "seq"],
+                )
+                store.insert_row(con, "recon_checks", {
+                    "ts_recv_ms": 1, "token_id": "up1", "seq": 5,
+                    "n_levels_ours": 2, "n_levels_theirs": 2,
+                    "max_abs_diff_price": 0.0, "max_abs_diff_size": 0.0,
+                    "verdict": "match",
+                })
+                self.assertEqual(
+                    con.execute("SELECT COUNT(*) FROM recon_checks").fetchone()[0], 1
+                )
+            finally:
+                con.close()
+            # повторное открытие — без сброса данных
+            con = store.connect(db_path)
+            try:
+                self.assertEqual(
+                    con.execute("SELECT COUNT(*) FROM recon_checks").fetchone()[0], 1
+                )
+                self.assertEqual(
+                    TestSchemaMigration._primary_key(con, "recon_checks"),
+                    ["token_id", "seq"],
+                )
+            finally:
+                con.close()
+
+
+class TestFlushGuarded(unittest.TestCase):
+    """ДЕФЕКТ А, часть 2: _flush_guarded обязан ПАДАТЬ ГРОМКО — не глотать
+    ошибку пачки, логировать размер потерянного пакета и пробрасывать наверх.
+
+    На старом коде _flush_guarded молча глотал ConstraintException/InvalidInput
+    после ROLLBACK в _flush, и пакет терялся без следа — эти тесты падали.
+    """
+
+    @staticmethod
+    def _wrong_key_db(con: duckdb.DuckDBPyConnection) -> None:
+        """recon_checks с ПК (token_id, ts_recv_ms): дедуп в пачке идёт по
+        (token_id, seq), а реальное ограничение БД — по (token_id, ts_recv_ms).
+        """
+        con.execute(
+            "CREATE TABLE recon_checks ("
+            "ts_recv_ms BIGINT NOT NULL, token_id VARCHAR NOT NULL, "
+            "seq BIGINT NOT NULL, "
+            "n_levels_ours BIGINT NOT NULL, n_levels_theirs BIGINT NOT NULL, "
+            "max_abs_diff_price DOUBLE NOT NULL, max_abs_diff_size DOUBLE NOT NULL, "
+            "verdict VARCHAR NOT NULL, PRIMARY KEY (token_id, ts_recv_ms))"
+        )
+        con.execute(
+            "INSERT INTO recon_checks VALUES (1, 'up1', 1, 2, 2, 0.0, 0.0, 'match')"
+        )
+
+    @staticmethod
+    def _recon_row(ts_recv_ms: int, token_id: str, seq: int) -> dict:
+        return {
+            "ts_recv_ms": ts_recv_ms,
+            "token_id": token_id,
+            "seq": seq,
+            "n_levels_ours": 2,
+            "n_levels_theirs": 2,
+            "max_abs_diff_price": 0.0,
+            "max_abs_diff_size": 0.0,
+            "verdict": "match",
+        }
+
+    def test_flush_guarded_reraises_on_packet_loss(self) -> None:
+        """Пачка из двух строк с разным seq в одну миллисекунду: дедуп по
+        (token_id, seq) их пропускает, реальный ПК (token_id, ts_recv_ms)
+        конфликтует -> _flush делает ROLLBACK, _flush_guarded обязан
+        ПРОБРОСИТЬ исключение, а не проглотить пакет."""
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "pm.duckdb"
+            con = duckdb.connect(str(path))
+            try:
+                self._wrong_key_db(con)
+                batch = [
+                    ("recon_checks", self._recon_row(1, "up1", 10)),
+                    ("recon_checks", self._recon_row(1, "up1", 11)),
+                ]
+                with self.assertRaises(Exception):
+                    store.StoreWriter._flush_guarded(con, batch)
+                # ROLLBACK выполнен: частичной записи нет
+                self.assertEqual(
+                    con.execute("SELECT COUNT(*) FROM recon_checks").fetchone()[0], 1
+                )
+            finally:
+                con.close()
+
+    def test_flush_guarded_rethrows_original_error(self) -> None:
+        """Тип исключения сохраняется (не подменяется на что-то общее)."""
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "pm.duckdb"
+            con = duckdb.connect(str(path))
+            try:
+                self._wrong_key_db(con)
+                batch = [
+                    ("recon_checks", self._recon_row(1, "up1", 10)),
+                    ("recon_checks", self._recon_row(1, "up1", 11)),
+                ]
+                with self.assertRaises(duckdb.Error):
+                    store.StoreWriter._flush_guarded(con, batch)
+            finally:
+                con.close()
+
+    def test_flush_guarded_empty_batch_noop(self) -> None:
+        """Пустая пачка не должна падать."""
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "pm.duckdb"
+            con = duckdb.connect(str(path))
+            try:
+                self._wrong_key_db(con)
+                store.StoreWriter._flush_guarded(con, [])
+                self.assertEqual(
+                    con.execute("SELECT COUNT(*) FROM recon_checks").fetchone()[0], 1
+                )
+            finally:
+                con.close()
+
+    def test_clean_batch_still_writes(self) -> None:
+        """Нормальная пачка (ключи не конфликтуют) пишется как раньше."""
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "pm.duckdb"
+            con = duckdb.connect(str(path))
+            try:
+                self._wrong_key_db(con)
+                batch = [
+                    ("recon_checks", self._recon_row(1, "up2", 10)),
+                    ("recon_checks", self._recon_row(2, "up1", 10)),
+                ]
+                store.StoreWriter._flush_guarded(con, batch)
+                self.assertEqual(
+                    con.execute("SELECT COUNT(*) FROM recon_checks").fetchone()[0], 3
+                )
+            finally:
+                con.close()
+
+
+class TestPreSeqDump(unittest.TestCase):
+    """ДЕФЕКТ А, доп.: перед пересозданием recon_checks миграция ОБЯЗАНА выгрузить
+    строки с seq IS NULL в parquet (data/validate/recon_checks_pre_seq.parquet для
+    живой базы). Эти строки не могут войти под NOT NULL ПК (token_id, seq), но
+    терять их нельзя (12 mismatch-строк — улики по дефекту Б).
+
+    На старом коде миграции пересоздания не было вообще: файл не создавался,
+    FileExistsError не проверялся, ошибка выгрузки не могла остановить миграцию —
+    эти тесты падали.
+    """
+
+    def _dump_path(self, db_path: Path) -> Path:
+        return db_path.parent / "validate" / store.PRE_SEQ_EXPORT_NAME
+
+    def test_migration_dumps_seq_null_rows_before_rebuild(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "pm.duckdb"
+            TestSchemaMigration._create_wrong_key_db(db_path)
+            con = store.connect(db_path)
+            try:
+                # строка с seq IS NULL выгружена ДО пересоздания
+                dump = self._dump_path(db_path)
+                self.assertTrue(dump.exists(), f"выгрузка не создана: {dump}")
+                import pyarrow.parquet as pq
+
+                rows = pq.read_table(dump).to_pylist()
+                self.assertEqual(len(rows), 1)
+                self.assertEqual(rows[0]["token_id"], "up1")
+                self.assertIsNone(rows[0]["seq"])
+                self.assertEqual(rows[0]["verdict"], "match")
+                # сама таблица пересоздана с ПК (token_id, seq), seq-строки целы
+                self.assertEqual(
+                    TestSchemaMigration._primary_key(con, "recon_checks"),
+                    ["token_id", "seq"],
+                )
+                self.assertEqual(
+                    con.execute("SELECT COUNT(*) FROM recon_checks").fetchone()[0], 2
+                )
+            finally:
+                con.close()
+
+    def test_dump_row_count_and_verdict_breakdown_match(self) -> None:
+        """Число строк в файле равно числу строк с seq IS NULL, разбивка по
+        verdict совпадает с данными таблицы."""
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "pm.duckdb"
+            TestSchemaMigration._create_wrong_key_db(db_path)
+            con = store.connect(db_path)
+            try:
+                import pyarrow.parquet as pq
+
+                dump = self._dump_path(db_path)
+                dumped = pq.read_table(dump).to_pylist()
+                by_verdict = {}
+                for r in dumped:
+                    by_verdict[r["verdict"]] = by_verdict.get(r["verdict"], 0) + 1
+                self.assertEqual(by_verdict, {"match": 1})
+                # контроль числа строк: в файле столько же, сколько было NULL-seq
+                self.assertEqual(len(dumped), 1)
+            finally:
+                con.close()
+
+    def test_migration_aborts_if_file_already_exists(self) -> None:
+        """Файл выгрузки уже существует -> громкий отказ, таблица НЕ пересоздана."""
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "pm.duckdb"
+            TestSchemaMigration._create_wrong_key_db(db_path)
+            dump = self._dump_path(db_path)
+            dump.parent.mkdir(parents=True, exist_ok=True)
+            dump.write_bytes(b"placeholder")  # молча не перезаписываем
+            with self.assertRaises(Exception) as cm:
+                store.connect(db_path)
+            self.assertIn("существует", str(cm.exception))
+            # миграция НЕ выполнилась: ПК прежний, строки на месте
+            con = duckdb.connect(str(db_path))
+            try:
+                self.assertEqual(
+                    TestSchemaMigration._primary_key(con, "recon_checks"),
+                    ["token_id", "ts_recv_ms"],
+                )
+                self.assertEqual(
+                    con.execute("SELECT COUNT(*) FROM recon_checks").fetchone()[0], 3
+                )
+            finally:
+                con.close()
+
+    def test_migration_aborts_on_dump_failure(self) -> None:
+        """Ошибка выгрузки -> миграция НЕ выполняется, падаем громко."""
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "pm.duckdb"
+            TestSchemaMigration._create_wrong_key_db(db_path)
+            with mock.patch(
+                "src.collect.store._dump_recon_pre_seq",
+                side_effect=RuntimeError("synthetic dump failure"),
+            ):
+                with self.assertRaises(RuntimeError) as cm:
+                    store.connect(db_path)
+            self.assertIn("synthetic dump failure", str(cm.exception))
+            con = duckdb.connect(str(db_path))
+            try:
+                self.assertEqual(
+                    TestSchemaMigration._primary_key(con, "recon_checks"),
+                    ["token_id", "ts_recv_ms"],
+                )
+                self.assertEqual(
+                    con.execute("SELECT COUNT(*) FROM recon_checks").fetchone()[0], 3
+                )
+            finally:
+                con.close()
 
 
 if __name__ == "__main__":
