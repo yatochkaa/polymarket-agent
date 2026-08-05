@@ -67,6 +67,10 @@ usage:
   python collect_window_v1.py run     --data-dir .\\data   # edinstvennyy progon po oknu sec.7b
   python collect_window_v1.py dryrun  --data-dir .\\data   # suhoy progon 02-01..02-07 (ne v reshenie)
   python collect_window_v1.py enum    --data-dir .\\data   # tolko enumeraciya + sostav tirov
+  python collect_window_v1.py repull        --data-dir .\\data                 # POPRAVKA12 Dif2: sbor syryh /trades -> trades_raw_win/ (RUN po slovu)
+  python collect_window_v1.py verify-passa  --data-dir .\\data                 # POPRAVKA12: sverka Prohoda A iz raw_win s frozen (1e-9 + sum n_trades)
+  python collect_window_v1.py cascade-probe --data-dir .\\data                 # POPRAVKA12 (AM1): count-only kaskad P11
+  python collect_window_v1.py run     --data-dir .\\data --p11 --source=raw_win # Prohod B (pereschyot) iz re-pull dannyh
   python collect_window_v1.py selftest
 """
 import json, os, re, sys, time, math, threading, collections, tempfile
@@ -106,6 +110,15 @@ TERM_HI, TERM_LO = 0.999, 0.001     # DOBAVKA3: terminalnye (raschyotnye) ceny, 
 # Predikat = is_term_price na SYROY cene (TOZHDESTVENNO DOBAVKA3 :471). n_trades zamorozhen.
 DROP_REASON_P11 = "p11_terminal_entry_empty"   # OTDELNOE novoe znachenie, sushchestvuyushchie NE pereispolzuem
 EXPECTED_DROP_TO_ZERO = 18                       # offline-srez: par s pustym vhodom rovno 18 (PROVERYAEMO -> gate)
+
+# ---- POPRAVKA 12 (Dif 2): re-pull + harness Prohoda A + kaskad-proba ----
+REPULL_DIR_NAME   = "trades_raw_win"     # OTDELNAYA direktoriya; staraya trades_raw NE trogaetsya
+REPULL_MANIFEST   = "manifest.jsonl"     # manifest na rynok (odna stroka na rynok; resume-friendly)
+REPULL_LOCK       = ".repull.lock"       # guard p.6: ne zapuskat' parallelno s kollektorom (DuckDB 1-pisatel)
+REPULL_BACKOFF    = (1, 2, 4, 8, 16)     # POPRAVKA12: 5 povtorov, sekundy (NE frozen 0.5..8 iz get())
+PASSA_TOL         = 1e-9                  # dopusk sverki chislovyh poley Prohoda A s frozen
+FROZEN_JSON_DEFAULT    = "collect_window_2026-02-01_2026-04-28.json"
+FROZEN_PARQUET_DEFAULT = "collect_window_2026-02-01_2026-04-28_pairs.parquet"
 
 OFFSET_CAP = 2000          # gamma deep-offset cap; popadanie -> PADAET
 TRADES_LIMIT = 10000       # /trades limit za otvet (proven recover3d)
@@ -607,7 +620,7 @@ def _write_bad_prices_csv(data_dir, records):
 
 
 # ------------------------------- sbor + voronka --------------------------
-def collect(data_dir, enum_min, enum_max, do_control, dry, p11=False):
+def collect(data_dir, enum_min, enum_max, do_control, dry, p11=False, source="network", source_dir=None):
     if not os.path.isdir(data_dir):
         os.makedirs(data_dir)
     tag = "DRYRUN " if dry else ""
@@ -638,8 +651,14 @@ def collect(data_dir, enum_min, enum_max, do_control, dry, p11=False):
     warns = []                      # rynki glubzhe OBSERVED_MAX (vklyuchaya isklyuchennye)
     max_count = 0; max_slug = None
     t0 = time.time(); done = 0
+    # POPRAVKA12: source='network' -- kak frozen (pull_trades po seti); source='raw_win' -- chtenie s diska re-pull.
+    _src_dir = source_dir or data_dir
+    def _acquire(m):
+        if source == "raw_win":
+            return read_trades_raw_win(_src_dir, m["cond"])   # (rows, complete) iz trades_raw_win/ (manifest)
+        return pull_trades(m["cond"])
     with ThreadPoolExecutor(max_workers=WORKERS) as ex:
-        futs = {ex.submit(pull_trades, m["cond"]): m for m in targets}
+        futs = {ex.submit(_acquire, m): m for m in targets}
         for fut in as_completed(futs):
             m = futs[fut]
             rows, complete = fut.result()      # oshibka zaprosa -> vsplyvyot (fail-fast)
@@ -1082,6 +1101,321 @@ def mode_enum(data_dir):
 
 
 # ------------------------------- selftest --------------------------------
+# ============================ POPRAVKA 12 (Dif 2) ============================
+# Ves' kod nizhe -- NOVYY. Prohod A po seti (source='network') pobitovo NE zatragivaetsya.
+def _repull_paths(data_dir):
+    d = os.path.join(data_dir, REPULL_DIR_NAME)
+    return d, os.path.join(d, REPULL_MANIFEST), os.path.join(d, REPULL_LOCK)
+
+
+def _sha256_file(path):
+    import hashlib
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _repull_raw_get(url):
+    """Odna popytka (throttle vnutri). Vozvrat: dannye libo {'__error__':..,'__transient__':bool}."""
+    throttle()
+    req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": UA})
+    try:
+        with urllib.request.urlopen(req, timeout=REQ_TIMEOUT) as r:
+            return json.loads(r.read().decode("utf-8", "replace"))
+    except urllib.error.HTTPError as e:
+        return {"__error__": "HTTP %d %s" % (e.code, e.reason), "__transient__": (e.code in TRANSIENT)}
+    except urllib.error.URLError as e:
+        return {"__error__": "conn: %s" % (e.reason,), "__transient__": False}
+    except Exception as e:
+        return {"__error__": "%s: %s" % (type(e).__name__, e), "__transient__": False}
+
+
+def repull_get_or_die(url, what):
+    """POPRAVKA12: retry TOLKO na transient, backoff 1->2->4->8->16 s. Inache -- padenie srazu."""
+    last = None
+    for i, back in enumerate((0.0,) + REPULL_BACKOFF):   # popytka 0 bez pauzy; dalee pauzy 1,2,4,8,16
+        if back:
+            time.sleep(back)
+        r = _repull_raw_get(url)
+        if not (isinstance(r, dict) and r.get("__error__")):
+            if i:
+                with _ret_lock:
+                    _retries_ok[0] += i         # chislo uspeshnyh povtorov (kak v get())
+            return r
+        last = r
+        if not r.get("__transient__"):
+            raise AmbiguousInput("re-pull zapros ne udalsya, padenie srazu (%s): %s -> %s"
+                                 % (what, url, r["__error__"]))
+    raise AmbiguousInput("re-pull: ischerpany %d povtorov (%s): %s -> %s"
+                         % (len(REPULL_BACKOFF), what, url, last["__error__"]))
+
+
+def pull_trades_manifest(cond):
+    """POPRAVKA12: vse dostizhimye sdelki rynka dlya re-pull; paginaciya proven (limit, offset {0,OFFMAX}).
+    Vozvrat: (rows, n_pages, offset_cap_hit, completeness_unreachable).
+      offset_cap_hit           -- prishlos' zaprashivat' stranicu na offset=TRADES_OFFMAX (potolok).
+      completeness_unreachable -- OBE stranicy polnye: hvost samyh staryh (predmatch) sdelok nedostizhim."""
+    rows = []; n_pages = 0; offset_cap_hit = False
+    for off in (0, TRADES_OFFMAX):
+        qs = urllib.parse.urlencode({"market": cond, "limit": TRADES_LIMIT, "offset": off})
+        r = repull_get_or_die(DATA + "/trades?" + qs, "re-pull trades cond=%s off=%d" % (cond, off))
+        if not isinstance(r, list):
+            raise AmbiguousInput("re-pull trades: otvet ne spisok cond=%s off=%d" % (cond, off))
+        n_pages += 1
+        rows.extend(r)
+        if off == TRADES_OFFMAX:
+            offset_cap_hit = True
+        if len(r) < TRADES_LIMIT:
+            return rows, n_pages, offset_cap_hit, False     # doshli do nachala istorii -> polno
+    return rows, n_pages, True, True                        # obe polnye -> nepolno (nedostizhim hvost)
+
+
+def write_trades_raw_win(data_dir, cond, rows):
+    """Atomarnaya zapis' syryh sdelok rynka (list dict, kak ot API) v trades_raw_win/. Vozvrat (fname, sha)."""
+    d, _, _ = _repull_paths(data_dir)
+    if not os.path.isdir(d):
+        os.makedirs(d)
+    fname = "trades_%s.json" % cond
+    fp = os.path.join(d, fname); tmp = fp + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(rows, f, ensure_ascii=False)
+        f.flush(); os.fsync(f.fileno())
+    os.replace(tmp, fp)
+    return fname, _sha256_file(fp)
+
+
+def load_repull_manifest(data_dir):
+    """cond -> zapis' manifesta; TOLKO status ok, fayl na meste i sha sovpadaet (validaciya resume)."""
+    d, mpath, _ = _repull_paths(data_dir)
+    raw = {}
+    if not os.path.exists(mpath):
+        return {}
+    with open(mpath, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            rec = json.loads(line)
+            raw[rec["cond"]] = rec          # poslednyaya zapis' pobezhdaet
+    ok = {}
+    for cond, rec in raw.items():
+        if rec.get("status") != "ok":
+            continue
+        fp = os.path.join(d, rec.get("file", ""))
+        if rec.get("file") and os.path.exists(fp) and _sha256_file(fp) == rec.get("sha"):
+            ok[cond] = rec
+    return ok
+
+
+def append_repull_manifest(data_dir, rec):
+    d, mpath, _ = _repull_paths(data_dir)
+    if not os.path.isdir(d):
+        os.makedirs(d)
+    with open(mpath, "a", encoding="utf-8") as f:
+        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        f.flush(); os.fsync(f.fileno())
+
+
+def read_trades_raw_win(data_dir, cond):
+    """Dlya source='raw_win': (rows, complete). complete = NE completeness_unreachable (po manifestu)."""
+    d, _, _ = _repull_paths(data_dir)
+    rec = load_repull_manifest(data_dir).get(cond)
+    if rec is None:
+        raise AmbiguousInput("re-pull raw_win: net gotovyh sdelok dlya cond=%s (snachala 'repull')" % cond)
+    with open(os.path.join(d, rec["file"]), "r", encoding="utf-8") as f:
+        rows = json.load(f)
+    return rows, (not rec.get("completeness_unreachable", False))
+
+
+def acquire_repull_lock(data_dir):
+    """Guard (POPRAVKA12 p.6): ne zapuskat' re-pull parallelno s kollektorom (DuckDB odnopotochna na zapis')."""
+    d, _, lpath = _repull_paths(data_dir)
+    if not os.path.isdir(d):
+        os.makedirs(d)
+    try:
+        fd = os.open(lpath, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        raise AmbiguousInput(
+            "re-pull LOCK zanyat (%s): vozmozhno idyot kollektor (clob/book) ili proshlyy re-pull. "
+            "NE zapuskat' parallelno. Esli tochno nichego ne rabotaet -- udali lock vruchnuyu." % lpath)
+    os.write(fd, ("pid=%d ts=%s\n" % (os.getpid(), iso_ts(int(time.time())))).encode())
+    os.close(fd)
+    return lpath
+
+
+def release_repull_lock(data_dir):
+    _, _, lpath = _repull_paths(data_dir)
+    try:
+        os.remove(lpath)
+    except FileNotFoundError:
+        pass
+
+
+def _repull_missing(target_conds, manifest_conds):
+    mset = set(manifest_conds)
+    return [c for c in target_conds if c not in mset]
+
+
+def repull(data_dir, enum_min, enum_max):
+    """POPRAVKA12 Dif2 (RUN tolko po slovu): sbor syryh /trades po vsem vnutriokonnym ATP/WTA rynkam v
+    trades_raw_win/. Manifest na rynok, resume, retry 5x(1..16s) tolko transient, coverage fail-fast,
+    itogi kazhdye 200. Guard-lock ot parallelnogo zapuska s kollektorom."""
+    set_window(WIN_START, WIN_END_EXCL)
+    d, mpath, _ = _repull_paths(data_dir)
+    acquire_repull_lock(data_dir)
+    try:
+        markets_all = enumerate_window(enum_min, enum_max)
+        in_window, comp, gsts = window_composition(markets_all)
+        targets = [m for m in in_window.values() if m["tier"] in DECISION_TIERS]
+        if not targets:
+            raise AmbiguousInput("re-pull: net ATP/WTA rynkov v okne -- proveryat' okno/enumeraciyu")
+        atp_wta = comp["atp"]["gst_in_win"] + comp["wta"]["gst_in_win"]
+        print("[repull] rynkov-celey ATP/WTA v okne = %d (kontrol %d..%d, throttle %d/10s, workers=%d)"
+              % (len(targets), CONTROL_LO, CONTROL_HI, MAX_PER_10S, WORKERS))
+        if not (CONTROL_LO <= atp_wta <= CONTROL_HI):
+            raise AmbiguousInput("re-pull KONTROL PROVALEN: ATP+WTA=%d vne [%d..%d] -> STOP DO sbora"
+                                 % (atp_wta, CONTROL_LO, CONTROL_HI))
+        done = load_repull_manifest(data_dir)
+        todo = [m for m in targets if m["cond"] not in done]
+        print("[repull] gotovo (resume) = %d; k sboru = %d" % (len(done), len(todo)))
+        t0 = time.time(); n_done = 0; n_unreach = 0
+        for m in todo:
+            rows, n_pages, offset_cap_hit, unreach = pull_trades_manifest(m["cond"])
+            fname, sha = write_trades_raw_win(data_dir, m["cond"], rows)
+            append_repull_manifest(data_dir, {
+                "cond": m["cond"], "slug": m["slug"], "tier": m["tier"],
+                "gst": (int(m["gst"]) if m["gst"] is not None else None),
+                "n_trades": len(rows), "n_pages": n_pages,
+                "offset_cap_hit": bool(offset_cap_hit),
+                "completeness_unreachable": bool(unreach),
+                "file": fname, "sha": sha, "status": "ok"})
+            n_done += 1; n_unreach += (1 if unreach else 0)
+            if n_done % 200 == 0:
+                el = time.time() - t0; rate = (n_done / el) if el else 0.0
+                print("    [repull] %d/%d | %.1f rynkov/s | nedostizhimyh=%d | retry_ok=%d"
+                      % (n_done, len(todo), rate, n_unreach, _retries_ok[0]))
+        final = load_repull_manifest(data_dir)
+        missing = _repull_missing([m["cond"] for m in targets], final.keys())
+        cov = len(targets) - len(missing)
+        print("[repull] coverage: %d/%d rynkov v manifeste (ok)" % (cov, len(targets)))
+        if missing:
+            raise AmbiguousInput("re-pull COVERAGE PROVALEN: ne sobrano %d/%d -> STOP. Primer: %s"
+                                 % (len(missing), len(targets), ", ".join(missing[:20])))
+        n_unr_total = sum(1 for r in final.values() if r.get("completeness_unreachable"))
+        print("[repull] GOTOVO: %d rynkov | nedostizhimyh predmatch=%d | retry_ok=%d -> %s"
+              % (len(targets), n_unr_total, _retries_ok[0], d))
+    finally:
+        release_repull_lock(data_dir)
+
+
+def _load_parquet_ntrades_sum(path):
+    import pyarrow.parquet as pq
+    col = pq.read_table(path, columns=["n_trades"]).column("n_trades").to_pylist()
+    return sum(int(x) for x in col if x is not None)
+
+
+def _passa_compare(frozen_pairs, new_pairs, sum_frozen, sum_new, tol=PASSA_TOL):
+    """Chistaya sverka Prohoda A s frozen: nabor par sovpadaet, chislovye polya v predelah tol,
+    sum(n_trades) bit-v-bit. Rasxozhdenie -> AmbiguousInput (STOP). Vozvrat: dict s max |d|."""
+    def key(p):
+        return (p["wallet"], p["cond"])
+    fmap = {key(p): p for p in frozen_pairs}
+    nmap = {key(p): p for p in new_pairs}
+    if set(fmap) != set(nmap):
+        of = list(set(fmap) - set(nmap))[:10]; on = list(set(nmap) - set(fmap))[:10]
+        raise AmbiguousInput("verify-passA STOP: nabor par razlichaetsya (tolko_frozen=%d, tolko_new=%d) "
+                             "primer_f=%s primer_n=%s"
+                             % (len(set(fmap) - set(nmap)), len(set(nmap) - set(fmap)), of, on))
+    NUM = ("N", "entry_vwap", "p_ref", "clv")
+    worst = 0.0; worst_at = None
+    for k in fmap:
+        a = fmap[k]; b = nmap[k]
+        for fld in NUM:
+            fa = a.get(fld); fb = b.get(fld)
+            if fa is None or fb is None:
+                if (fa is None) != (fb is None):
+                    raise AmbiguousInput("verify-passA STOP: %s.%s None-rasxozhdenie (f=%r n=%r)"
+                                         % (k, fld, fa, fb))
+                continue
+            dd = abs(float(fa) - float(fb))
+            if dd > worst:
+                worst = dd; worst_at = (k, fld)
+            if dd > tol:
+                raise AmbiguousInput("verify-passA STOP: %s.%s |d|=%.3e > %.0e" % (k, fld, dd, tol))
+    if int(sum_frozen) != int(sum_new):
+        raise AmbiguousInput("verify-passA STOP: sum(n_trades) ne bit-v-bit: frozen=%d new=%d (raznica=%d)"
+                             % (int(sum_frozen), int(sum_new), int(sum_new) - int(sum_frozen)))
+    return {"pairs": len(fmap), "max_abs_delta": worst, "max_at": worst_at, "sum_n_trades": int(sum_frozen)}
+
+
+def verify_pass_a(data_dir, frozen_json=None, frozen_parquet=None):
+    """POPRAVKA12 (DO pereschyota): dokazat', chto Prohod A iz trades_raw_win/ vosproizvodit frozen
+    (chislovye polya <=1e-9, sum(n_trades) bit-v-bit). Rasxozhdenie -> STOP, pereschyot NE zapuskaetsya.
+    Vyhod Prohoda A pishetsya vo VREMENNUYU papku -- frozen fayly NE perezapisyvayutsya."""
+    frozen_json = frozen_json or os.path.join(data_dir, FROZEN_JSON_DEFAULT)
+    frozen_parquet = frozen_parquet or os.path.join(data_dir, FROZEN_PARQUET_DEFAULT)
+    if not (os.path.exists(frozen_json) and os.path.exists(frozen_parquet)):
+        raise AmbiguousInput("verify-passA: net frozen fajlov (%s / %s)" % (frozen_json, frozen_parquet))
+    tmp_out = os.path.join(data_dir, "_verify_passA_tmp")
+    if not os.path.isdir(tmp_out):
+        os.makedirs(tmp_out)
+    print("[verify-passA] pereschyot Prohoda A iz trades_raw_win/ (bez seti); frozen NE trogaem")
+    out = collect(tmp_out, ENUM_END_MIN, ENUM_END_MAX, do_control=True, dry=False, p11=False,
+                  source="raw_win", source_dir=data_dir)
+    new_pairs = out["pairs"]
+    with open(frozen_json, "r", encoding="utf-8") as f:
+        frozen_pairs = json.load(f)["pairs"]
+    new_parquet = os.path.join(tmp_out, FROZEN_PARQUET_DEFAULT)
+    res = _passa_compare(frozen_pairs, new_pairs,
+                         _load_parquet_ntrades_sum(frozen_parquet),
+                         _load_parquet_ntrades_sum(new_parquet))
+    print("[verify-passA] OK: par=%d | max|d|=%.3e (<=%.0e) | sum(n_trades)=%d bit-v-bit"
+          % (res["pairs"], res["max_abs_delta"], PASSA_TOL, res["sum_n_trades"]))
+    return res
+
+
+def _cascade_count(frozen_valid, passb_valid, min_matches=MIN_MATCHES):
+    """Chistyy schet (AM1, voronku NE perestraivaem): pary poteryany pod P11, (wallet,tier) s perehodom
+    >=min_matches -> <min_matches, rynki poteryavshie >=1 paru."""
+    def key(p):
+        return (p["wallet"], p["cond"])
+    bkeys = set(key(p) for p in passb_valid)
+    lost = [p for p in frozen_valid if key(p) not in bkeys]
+    before = collections.defaultdict(int); after = collections.defaultdict(int)
+    for p in frozen_valid:
+        before[(p["wallet"], p["tier"])] += 1
+    for p in passb_valid:
+        after[(p["wallet"], p["tier"])] += 1
+    crossed = [wt for wt in before if before[wt] >= min_matches and after.get(wt, 0) < min_matches]
+    markets = set(p["cond"] for p in lost)
+    return {"pairs_lost": len(lost), "wallets_crossed_down": len(crossed),
+            "markets_losing_pairs": len(markets)}
+
+
+def cascade_probe(data_dir, frozen_json=None):
+    """POPRAVKA12 (AM1) count-only: skolko koshelkov perehodyat >=100 -> <100 i skolko rynkov teryayut
+    pary pod P11. Voronka NE perestraivaetsya. Vyhod Prohoda B -- vo vremennuyu papku."""
+    frozen_json = frozen_json or os.path.join(data_dir, FROZEN_JSON_DEFAULT)
+    if not os.path.exists(frozen_json):
+        raise AmbiguousInput("cascade-probe: net frozen %s" % frozen_json)
+    with open(frozen_json, "r", encoding="utf-8") as f:
+        frozen_valid = json.load(f)["pairs"]
+    tmp_out = os.path.join(data_dir, "_cascade_tmp")
+    if not os.path.isdir(tmp_out):
+        os.makedirs(tmp_out)
+    print("[cascade] Prohod B iz trades_raw_win/ (bez seti); count-only, voronka NE perestraivaetsya")
+    outB = collect(tmp_out, ENUM_END_MIN, ENUM_END_MAX, do_control=True, dry=False, p11=True,
+                   source="raw_win", source_dir=data_dir)
+    res = _cascade_count(frozen_valid, outB["pairs"])
+    print("[cascade] par poteryano pod P11: %d" % res["pairs_lost"])
+    print("[cascade] (wallet,tier) perehod >=%d -> <%d: %d"
+          % (MIN_MATCHES, MIN_MATCHES, res["wallets_crossed_down"]))
+    print("[cascade] rynkov, poteryavshih >=1 paru: %d" % res["markets_losing_pairs"])
+    return res
+
+
 def _selftest():
     set_window("2026-02-01", "2026-04-28")
     assert tier_of("atp-sinner-alcaraz-2026-03-15") == "atp"
@@ -1317,6 +1651,112 @@ def _selftest():
         pass
     p11_state = "OK (oracle 2eef68c5: A==frozen, B==oracle, used, dyra-0.999, oi=1x2, gate, sum-inv)"
 
+    # ================= POPRAVKA 12 (Dif 2): re-pull + harness + kaskad (offline, cherez moki) =================
+    import tempfile as _tf, urllib.parse as _up
+    global _repull_raw_get, REPULL_BACKOFF, repull_get_or_die
+
+    # -- repull_get_or_die: retry tolko transient; backoff podmenyaem na 0 (bez realnyh pauz); uchyot retry_ok --
+    _save_raw = _repull_raw_get; _save_bo = REPULL_BACKOFF
+    REPULL_BACKOFF = (0, 0, 0, 0, 0)
+    try:
+        seq = [{"__error__": "HTTP 503 x", "__transient__": True},
+               {"__error__": "HTTP 502 y", "__transient__": True},
+               [{"ok": 1}]]
+        _repull_raw_get = lambda url, _s=seq: _s.pop(0)
+        _r0 = _retries_ok[0]
+        _out = repull_get_or_die("u", "w")
+        assert _out == [{"ok": 1}] and _retries_ok[0] == _r0 + 2, (_out, _retries_ok[0] - _r0)
+        _repull_raw_get = lambda url: {"__error__": "HTTP 400 bad", "__transient__": False}   # non-transient -> srazu
+        try:
+            repull_get_or_die("u", "w"); assert False
+        except AmbiguousInput:
+            pass
+        _repull_raw_get = lambda url: {"__error__": "HTTP 503 z", "__transient__": True}       # ischerpanie -> raise
+        try:
+            repull_get_or_die("u", "w"); assert False
+        except AmbiguousInput:
+            pass
+    finally:
+        _repull_raw_get = _save_raw; REPULL_BACKOFF = _save_bo
+
+    # -- pull_trades_manifest: n_pages / offset_cap_hit / completeness_unreachable --
+    _save_god = repull_get_or_die
+    try:
+        def _mk(pmap):
+            def _f(url, what):
+                off = int(dict(_up.parse_qsl(url.split("?", 1)[1]))["offset"])
+                return pmap[off]
+            return _f
+        repull_get_or_die = _mk({0: [{"x": i} for i in range(TRADES_LIMIT)], TRADES_OFFMAX: [{"y": 1}]})
+        _rw, _npg, _cap, _unr = pull_trades_manifest("cA")
+        assert _npg == 2 and _cap is True and _unr is False and len(_rw) == TRADES_LIMIT + 1
+        repull_get_or_die = _mk({0: [{"z": 1}], TRADES_OFFMAX: []})
+        _rw, _npg, _cap, _unr = pull_trades_manifest("cB")
+        assert _npg == 1 and _cap is False and _unr is False and len(_rw) == 1
+        repull_get_or_die = _mk({0: [{"x": i} for i in range(TRADES_LIMIT)],
+                                 TRADES_OFFMAX: [{"y": i} for i in range(TRADES_LIMIT)]})
+        _rw, _npg, _cap, _unr = pull_trades_manifest("cC")
+        assert _npg == 2 and _cap is True and _unr is True and len(_rw) == 2 * TRADES_LIMIT
+    finally:
+        repull_get_or_die = _save_god
+
+    # -- manifest + write/read + resume (validaciya sha) --
+    _td = _tf.mkdtemp()
+    _rows_a = [{"asset": "tk0", "price": 0.4, "size": 3, "side": "BUY", "timestamp": 900}]
+    _fn, _sh = write_trades_raw_win(_td, "cM", _rows_a)
+    append_repull_manifest(_td, {"cond": "cM", "slug": "atp-a-b-2026-02-03", "tier": "atp", "gst": 111,
+                                 "n_trades": 1, "n_pages": 1, "offset_cap_hit": False,
+                                 "completeness_unreachable": False, "file": _fn, "sha": _sh, "status": "ok"})
+    _man = load_repull_manifest(_td)
+    assert "cM" in _man and _man["cM"]["n_trades"] == 1
+    _rr, _cr = read_trades_raw_win(_td, "cM")
+    assert _cr is True and _rr == _rows_a
+    append_repull_manifest(_td, {"cond": "cN", "file": "trades_cN.json", "sha": "deadbeef", "status": "ok"})
+    assert "cN" not in load_repull_manifest(_td)          # net fayla/bityy sha -> resume soberyot zanovo
+    _fn2, _sh2 = write_trades_raw_win(_td, "cU", _rows_a)
+    append_repull_manifest(_td, {"cond": "cU", "file": _fn2, "sha": _sh2, "status": "ok",
+                                 "completeness_unreachable": True})
+    _, _cu = read_trades_raw_win(_td, "cU")
+    assert _cu is False                                    # unreachable -> complete=False
+
+    # -- lock: povtornyy zahvat padaet; posle osvobozhdeniya -- ok --
+    _tl = _tf.mkdtemp()
+    acquire_repull_lock(_tl)
+    try:
+        acquire_repull_lock(_tl); assert False
+    except AmbiguousInput:
+        pass
+    release_repull_lock(_tl)
+    acquire_repull_lock(_tl); release_repull_lock(_tl)
+
+    # -- coverage helper --
+    assert _repull_missing(["a", "b", "c"], ["a", "c"]) == ["b"]
+    assert _repull_missing(["a", "b"], ["a", "b"]) == []
+
+    # -- _passa_compare: sovpadenie v dopuske / prevyshenie / nabor par / sum(n_trades) --
+    _fp = [{"wallet": "0xa", "cond": "c1", "tier": "atp", "N": 6.0, "entry_vwap": 0.4, "p_ref": 0.65, "clv": 0.25}]
+    _np = [{"wallet": "0xa", "cond": "c1", "tier": "atp", "N": 6.0, "entry_vwap": 0.4 + 5e-10, "p_ref": 0.65, "clv": 0.25}]
+    _ro = _passa_compare(_fp, _np, 6, 6)
+    assert _ro["pairs"] == 1 and _ro["max_abs_delta"] <= PASSA_TOL and _ro["sum_n_trades"] == 6
+    for _bn, _bsf, _bsn in [([dict(_np[0], entry_vwap=0.4 + 1e-6)], 6, 6),   # prevyshenie tol
+                            ([dict(_np[0], cond="cZ")], 6, 6),               # nabor par
+                            (_np, 6, 7)]:                                    # sum(n_trades) ne bit-v-bit
+        try:
+            _passa_compare(_fp, _bn, _bsf, _bsn); assert False
+        except AmbiguousInput:
+            pass
+
+    # -- _cascade_count: poteri par / perehod koshelka 100->98 / rynki --
+    _fv = ([{"wallet": "w1", "cond": "c%d" % i, "tier": "atp"} for i in range(100)] +
+           [{"wallet": "w2", "cond": "d%d" % i, "tier": "wta"} for i in range(50)])
+    _bv = ([{"wallet": "w1", "cond": "c%d" % i, "tier": "atp"} for i in range(98)] +
+           [{"wallet": "w2", "cond": "d%d" % i, "tier": "wta"} for i in range(50)])
+    _cc = _cascade_count(_fv, _bv)
+    assert _cc["pairs_lost"] == 2 and _cc["wallets_crossed_down"] == 1 and _cc["markets_losing_pairs"] == 2
+
+    d2_state = ("OK (repull retry/backoff-1..16 + manifest/resume-sha + offcap/unreach + lock + "
+                "coverage + passA-1e-9+sumNt + cascade count-only)")
+
     # throttle concurrency
     errs = []
     def hammer():
@@ -1333,7 +1773,8 @@ def _selftest():
 
     print("SELFTEST OK: tier/slug/window + dryrun-switch + parse_clob + idx + svyortka(sec.3) + "
           "clv(sec.4) + etalon(sec.2+term-excl) + winner + dopusk-tira(sec.5) + quantile + "
-          "pull_trades-completeness + throttle + fail-fast | parquet=%s | P11=%s" % (parquet_state, p11_state))
+          "pull_trades-completeness + throttle + fail-fast | parquet=%s | P11=%s | D2=%s"
+          % (parquet_state, p11_state, d2_state))
 
 
 def _arg(name, default=None):
@@ -1353,6 +1794,9 @@ def main():
     if isinstance(data_dir, bool):
         data_dir = "data"
     p11 = bool(_arg("p11"))   # POPRAVKA 11: Prohod B (pravilo ON). Bez flaga -- Prohod A (zamorozhennyy).
+    source = _arg("source", "network")   # POPRAVKA12: 'network' (frozen) libo 'raw_win' (s diska re-pull)
+    if isinstance(source, bool):
+        source = "network"
     if mode == "selftest":
         _selftest()
     elif mode == "enum":
@@ -1360,11 +1804,20 @@ def main():
         mode_enum(data_dir)
     elif mode == "run":
         set_window("2026-02-01", "2026-04-28")
-        collect(data_dir, ENUM_END_MIN, ENUM_END_MAX, do_control=True, dry=False, p11=p11)
+        collect(data_dir, ENUM_END_MIN, ENUM_END_MAX, do_control=True, dry=False, p11=p11, source=source)
     elif mode == "dryrun":
         # DOBAVKA2: srez 2026-02-01..2026-02-07 (poluotkryto do 02-08). Kontrol 4068 NE primenyaetsya.
         set_window("2026-02-01", "2026-02-08")
-        collect(data_dir, "2026-01-01", "2026-02-22", do_control=False, dry=True, p11=p11)
+        collect(data_dir, "2026-01-01", "2026-02-22", do_control=False, dry=True, p11=p11, source=source)
+    elif mode == "repull":
+        set_window("2026-02-01", "2026-04-28")
+        repull(data_dir, ENUM_END_MIN, ENUM_END_MAX)
+    elif mode == "verify-passa":
+        set_window("2026-02-01", "2026-04-28")
+        verify_pass_a(data_dir)
+    elif mode == "cascade-probe":
+        set_window("2026-02-01", "2026-04-28")
+        cascade_probe(data_dir)
     else:
         print("neizvestnyy rezhim: %s" % mode); print(__doc__)
 
