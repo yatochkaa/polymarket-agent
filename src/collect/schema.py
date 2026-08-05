@@ -79,6 +79,9 @@ RECON_CHECKS_COLUMNS = {
     "n_levels_theirs": "BIGINT NOT NULL",
     "max_abs_diff_price": "DOUBLE NOT NULL",
     "max_abs_diff_size": "DOUBLE NOT NULL",
+    "extra_ours": "TEXT",
+    "extra_theirs": "TEXT",
+    "n_skipped_dedup_token": "BIGINT",
     "verdict": "TEXT NOT NULL",
 }
 # Ключ включает локальный seq: два book-события одного токена в одну
@@ -134,6 +137,17 @@ OWN_ORDERS_COLUMNS = {
 }
 OWN_ORDERS_KEY = ("id",)
 
+DEDUP_SKIPPED_COLUMNS = {
+    "ts_recv_ms": "BIGINT NOT NULL",
+    "token_id": "TEXT NOT NULL",
+    "side": "TEXT",
+    "price": "DOUBLE",
+    "size": "DOUBLE",
+    "hash": "TEXT",
+    "reason": "TEXT NOT NULL",
+}
+DEDUP_SKIPPED_KEY = ("ts_recv_ms", "token_id", "side", "price", "size", "hash")
+
 TABLES: dict[str, tuple[dict[str, str], tuple[str, ...]]] = {
     "book_snapshots": (BOOK_SNAPSHOTS_COLUMNS, BOOK_SNAPSHOTS_KEY),
     "tick_changes": (TICK_CHANGES_COLUMNS, TICK_CHANGES_KEY),
@@ -143,6 +157,7 @@ TABLES: dict[str, tuple[dict[str, str], tuple[str, ...]]] = {
     "conn_stats": (CONN_STATS_COLUMNS, CONN_STATS_KEY),
     "markets_tracked": (MARKETS_TRACKED_COLUMNS, MARKETS_TRACKED_KEY),
     "own_orders": (OWN_ORDERS_COLUMNS, OWN_ORDERS_KEY),
+    "dedup_skipped": (DEDUP_SKIPPED_COLUMNS, DEDUP_SKIPPED_KEY),
 }
 
 GAP_REASONS = frozenset({"time_gap", "server_resync", "disconnect", "process_restart"})

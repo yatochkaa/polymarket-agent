@@ -509,6 +509,9 @@ class Collector:
         self._seq_ticks: dict[str, int] = {}
         self._dedup: deque[str] = deque()
         self._dedup_set: set[str] = set()
+        self._dedup_skipped_by_token: dict[str, int] = {}
+        self._dedup_skipped_queued = 0
+        self._dedup_skipped_write_disabled = False
         self.pending_resync: set[str] = set()
         self._resync_from: dict[str, int] = {}
         self._silence_open = False
@@ -610,6 +613,27 @@ class Collector:
         self._seq_ticks[token_id] += 1
         return value
 
+    def _record_dedup_skip(self, event: Event, ts_recv_ms: int) -> None:
+        token_id = event.token_id
+        self._dedup_skipped_by_token[token_id] = self._dedup_skipped_by_token.get(token_id, 0) + 1
+        if self._dedup_skipped_write_disabled:
+            return
+        if self._dedup_skipped_queued >= 200000:
+            self._dedup_skipped_write_disabled = True
+            log.warning("dedup_skipped limit reached; further skipped events are not written")
+            return
+        side = getattr(event, "side", None)
+        self._dedup_skipped_queued += 1
+        self.writer.submit_row("dedup_skipped", {
+            "ts_recv_ms": ts_recv_ms,
+            "token_id": token_id,
+            "side": side,
+            "price": event.price,
+            "size": event.size,
+            "hash": getattr(event, "hash", None) or getattr(event, "transaction_hash", None),
+            "reason": "duplicate",
+        })
+
     def _is_duplicate(self, key: str) -> bool:
         """Анти-дубль при двойной подписке (токен и его комплемент)."""
         if key in self._dedup_set:
@@ -709,6 +733,7 @@ class Collector:
 
     def _handle_book(self, event: BookEvent, ts_recv_ms: int, conn_id: int = 0) -> None:
         if self._is_duplicate(self._dedup_key(event)):
+            self._record_dedup_skip(event, ts_recv_ms)
             return
         st = self._conn_stats(conn_id)
         live = self._livebook(event.token_id)
@@ -736,6 +761,7 @@ class Collector:
             ours=live,
             theirs_bids=theirs_bids,
             theirs_asks=theirs_asks,
+            n_skipped_dedup_token=self._dedup_skipped_by_token.get(event.token_id, 0),
         )
         self.writer.submit_row("recon_checks", rc)
         self.stats["recons"] += 1
@@ -783,6 +809,7 @@ class Collector:
             self.stats["unknown_types"] += 1
             return
         if self._is_duplicate(self._dedup_key(event)):
+            self._record_dedup_skip(event, ts_recv_ms)
             return
         # Отрицательный контроль: выбрасываем долю price_change ДО применения
         # к книге — книга расходится с сервером, recon_checks обязан поймать.
@@ -826,6 +853,7 @@ class Collector:
 
     def _handle_trade(self, event: TradeEvent, ts_recv_ms: int, conn_id: int = 0) -> None:
         if self._is_duplicate(self._dedup_key(event)):
+            self._record_dedup_skip(event, ts_recv_ms)
             return
         self.writer.submit_row(
             "tick_changes",

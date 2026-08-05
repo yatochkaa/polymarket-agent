@@ -774,6 +774,21 @@ class TestSyncWriter(unittest.TestCase):
             w.close()
 
 
+class TestReconDiagnostics(unittest.TestCase):
+    def test_zero_size_server_level_is_filtered(self) -> None:
+        ours = LiveBook()
+        ours.set_book([(0.5, 1.0)], [])
+        row = recon_check(
+            ts_recv_ms=1,
+            token_id="up1",
+            seq=1,
+            ours=ours,
+            theirs_bids={0.5: 1.0, 0.4: 0.0},
+            theirs_asks={},
+        )
+        self.assertEqual(row["n_levels_theirs"], 1)
+
+
 class TestVertical(unittest.TestCase):
     """ЗАДАЧА 2: неизвестная вертикаль -- жёсткая ошибка, не молчаливый crypto."""
 
@@ -1032,6 +1047,19 @@ class TestSchemaMigration(unittest.TestCase):
             "INSERT INTO recon_checks VALUES (1, 'up1', 2, 2, 0.0, 0.0, 'match')"
         )
         con.close()
+
+    def test_connect_adds_new_recon_columns_and_dedup_table(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "pm.duckdb"
+            self._create_legacy_db(db_path)
+            con = store.connect(db_path)
+            try:
+                recon_cols = {str(r[0]) for r in con.execute("DESCRIBE recon_checks").fetchall()}
+                self.assertTrue({"extra_ours", "extra_theirs", "n_skipped_dedup_token"} <= recon_cols)
+                self.assertEqual(con.execute("SELECT COUNT(*) FROM recon_checks").fetchone()[0], 1)
+                self.assertEqual(con.execute("SELECT COUNT(*) FROM dedup_skipped").fetchone()[0], 0)
+            finally:
+                con.close()
 
     def test_connect_adds_missing_seq_column(self) -> None:
         with tempfile.TemporaryDirectory() as td:

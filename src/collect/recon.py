@@ -12,6 +12,7 @@ LiveBook держит состояние книги токена, собирае
 
 from __future__ import annotations
 
+import json
 from typing import Any, Sequence
 
 from . import schema
@@ -101,6 +102,7 @@ def recon_check(
     ours: LiveBook,
     theirs_bids: dict[float, float],
     theirs_asks: dict[float, float],
+    n_skipped_dedup_token: int = 0,
 ) -> dict[str, Any]:
     """Строка recon_checks для одного серверного снимка.
 
@@ -117,7 +119,32 @@ def recon_check(
                  общих ценах — всё совпадает);
       mismatch — расхождение: потеря/дубль сообщений.
     """
+    theirs_bids = {p: s for p, s in theirs_bids.items() if s > 0}
+    theirs_asks = {p: s for p, s in theirs_asks.items() if s > 0}
+
+    def _extras() -> tuple[str, str]:
+        extra_ours = [
+            [side, price, size]
+            for side, levels, other in (
+                ("BUY", ours.bids, theirs_bids),
+                ("SELL", ours.asks, theirs_asks),
+            )
+            for price, size in levels.items()
+            if price not in other
+        ][:5]
+        extra_theirs = [
+            [side, price, size]
+            for side, levels, other in (
+                ("BUY", theirs_bids, ours.bids),
+                ("SELL", theirs_asks, ours.asks),
+            )
+            for price, size in levels.items()
+            if price not in other
+        ][:5]
+        return json.dumps(extra_ours), json.dumps(extra_theirs)
+
     if not ours.initialized:
+        extra_ours, extra_theirs = _extras()
         return {
             "ts_recv_ms": ts_recv_ms,
             "token_id": token_id,
@@ -126,6 +153,9 @@ def recon_check(
             "n_levels_theirs": len(theirs_bids) + len(theirs_asks),
             "max_abs_diff_price": 0.0,
             "max_abs_diff_size": 0.0,
+            "extra_ours": extra_ours,
+            "extra_theirs": extra_theirs,
+            "n_skipped_dedup_token": n_skipped_dedup_token,
             "verdict": "warmup",
         }
 
@@ -157,6 +187,7 @@ def recon_check(
 
     n_ours = ours.n_levels
     n_theirs = len(theirs_bids) + len(theirs_asks)
+    extra_ours, extra_theirs = _extras()
     verdict = (
         "match"
         if (n_ours == n_theirs and max_price_diff == 0.0 and max_size_diff == 0.0)
@@ -170,5 +201,8 @@ def recon_check(
         "n_levels_theirs": n_theirs,
         "max_abs_diff_price": round(max_price_diff, 8),
         "max_abs_diff_size": round(max_size_diff, 8),
+        "extra_ours": extra_ours,
+        "extra_theirs": extra_theirs,
+        "n_skipped_dedup_token": n_skipped_dedup_token,
         "verdict": verdict,
     }
