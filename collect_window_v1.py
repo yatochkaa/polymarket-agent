@@ -119,6 +119,9 @@ REPULL_BACKOFF    = (1, 2, 4, 8, 16)     # POPRAVKA12: 5 povtorov, sekundy (NE f
 PASSA_TOL         = 1e-9                  # dopusk sverki chislovyh poley Prohoda A s frozen
 FROZEN_JSON_DEFAULT    = "collect_window_2026-02-01_2026-04-28.json"
 FROZEN_PARQUET_DEFAULT = "collect_window_2026-02-01_2026-04-28_pairs.parquet"
+REPULL_DIR_DRY              = "trades_raw_win_dry"          # POPRAVKA12 pravka: podoknnyy PROBNYY re-pull; v trades_raw_win NE pishetsya
+ACCEPTED_UNREACHABLE        = 1                              # prinyatyy progon: rovno 1 rynok s nedostizhimoy polnotoy
+ACCEPTED_UNREACHABLE_MARKET = "wta-osorio-cristia-2026-02-01"
 
 OFFSET_CAP = 2000          # gamma deep-offset cap; popadanie -> PADAET
 TRADES_LIMIT = 10000       # /trades limit za otvet (proven recover3d)
@@ -651,11 +654,14 @@ def collect(data_dir, enum_min, enum_max, do_control, dry, p11=False, source="ne
     warns = []                      # rynki glubzhe OBSERVED_MAX (vklyuchaya isklyuchennye)
     max_count = 0; max_slug = None
     t0 = time.time(); done = 0
-    # POPRAVKA12: source='network' -- kak frozen (pull_trades po seti); source='raw_win' -- chtenie s diska re-pull.
+    # POPRAVKA12: source='network' -- kak frozen (pull_trades po seti);
+    #   source='raw_win'     -- chtenie polnoy vykachki iz trades_raw_win/ (manifest);
+    #   source='raw_win_dry' -- chtenie PROBNOY podoknnoy vykachki iz trades_raw_win_dry/ (izolyaciya).
     _src_dir = source_dir or data_dir
+    _repull_dir = REPULL_DIR_DRY if source == "raw_win_dry" else REPULL_DIR_NAME
     def _acquire(m):
-        if source == "raw_win":
-            return read_trades_raw_win(_src_dir, m["cond"])   # (rows, complete) iz trades_raw_win/ (manifest)
+        if source in ("raw_win", "raw_win_dry"):
+            return read_trades_raw_win(_src_dir, m["cond"], repull_dir=_repull_dir)  # (rows, complete) iz manifesta
         return pull_trades(m["cond"])
     with ThreadPoolExecutor(max_workers=WORKERS) as ex:
         futs = {ex.submit(_acquire, m): m for m in targets}
@@ -1103,8 +1109,8 @@ def mode_enum(data_dir):
 # ------------------------------- selftest --------------------------------
 # ============================ POPRAVKA 12 (Dif 2) ============================
 # Ves' kod nizhe -- NOVYY. Prohod A po seti (source='network') pobitovo NE zatragivaetsya.
-def _repull_paths(data_dir):
-    d = os.path.join(data_dir, REPULL_DIR_NAME)
+def _repull_paths(data_dir, repull_dir=REPULL_DIR_NAME):
+    d = os.path.join(data_dir, repull_dir)
     return d, os.path.join(d, REPULL_MANIFEST), os.path.join(d, REPULL_LOCK)
 
 
@@ -1172,9 +1178,9 @@ def pull_trades_manifest(cond):
     return rows, n_pages, True, True                        # obe polnye -> nepolno (nedostizhim hvost)
 
 
-def write_trades_raw_win(data_dir, cond, rows):
-    """Atomarnaya zapis' syryh sdelok rynka (list dict, kak ot API) v trades_raw_win/. Vozvrat (fname, sha)."""
-    d, _, _ = _repull_paths(data_dir)
+def write_trades_raw_win(data_dir, cond, rows, repull_dir=REPULL_DIR_NAME):
+    """Atomarnaya zapis' syryh sdelok rynka (list dict, kak ot API) v repull_dir/. Vozvrat (fname, sha)."""
+    d, _, _ = _repull_paths(data_dir, repull_dir)
     if not os.path.isdir(d):
         os.makedirs(d)
     fname = "trades_%s.json" % cond
@@ -1186,9 +1192,9 @@ def write_trades_raw_win(data_dir, cond, rows):
     return fname, _sha256_file(fp)
 
 
-def load_repull_manifest(data_dir):
+def load_repull_manifest(data_dir, repull_dir=REPULL_DIR_NAME):
     """cond -> zapis' manifesta; TOLKO status ok, fayl na meste i sha sovpadaet (validaciya resume)."""
-    d, mpath, _ = _repull_paths(data_dir)
+    d, mpath, _ = _repull_paths(data_dir, repull_dir)
     raw = {}
     if not os.path.exists(mpath):
         return {}
@@ -1209,8 +1215,8 @@ def load_repull_manifest(data_dir):
     return ok
 
 
-def append_repull_manifest(data_dir, rec):
-    d, mpath, _ = _repull_paths(data_dir)
+def append_repull_manifest(data_dir, rec, repull_dir=REPULL_DIR_NAME):
+    d, mpath, _ = _repull_paths(data_dir, repull_dir)
     if not os.path.isdir(d):
         os.makedirs(d)
     with open(mpath, "a", encoding="utf-8") as f:
@@ -1218,10 +1224,10 @@ def append_repull_manifest(data_dir, rec):
         f.flush(); os.fsync(f.fileno())
 
 
-def read_trades_raw_win(data_dir, cond):
-    """Dlya source='raw_win': (rows, complete). complete = NE completeness_unreachable (po manifestu)."""
-    d, _, _ = _repull_paths(data_dir)
-    rec = load_repull_manifest(data_dir).get(cond)
+def read_trades_raw_win(data_dir, cond, repull_dir=REPULL_DIR_NAME):
+    """Dlya source='raw_win'/'raw_win_dry': (rows, complete). complete = NE completeness_unreachable (po manifestu)."""
+    d, _, _ = _repull_paths(data_dir, repull_dir)
+    rec = load_repull_manifest(data_dir, repull_dir).get(cond)
     if rec is None:
         raise AmbiguousInput("re-pull raw_win: net gotovyh sdelok dlya cond=%s (snachala 'repull')" % cond)
     with open(os.path.join(d, rec["file"]), "r", encoding="utf-8") as f:
@@ -1229,9 +1235,9 @@ def read_trades_raw_win(data_dir, cond):
     return rows, (not rec.get("completeness_unreachable", False))
 
 
-def acquire_repull_lock(data_dir):
+def acquire_repull_lock(data_dir, repull_dir=REPULL_DIR_NAME):
     """Guard (POPRAVKA12 p.6): ne zapuskat' re-pull parallelno s kollektorom (DuckDB odnopotochna na zapis')."""
-    d, _, lpath = _repull_paths(data_dir)
+    d, _, lpath = _repull_paths(data_dir, repull_dir)
     if not os.path.isdir(d):
         os.makedirs(d)
     try:
@@ -1245,8 +1251,8 @@ def acquire_repull_lock(data_dir):
     return lpath
 
 
-def release_repull_lock(data_dir):
-    _, _, lpath = _repull_paths(data_dir)
+def release_repull_lock(data_dir, repull_dir=REPULL_DIR_NAME):
+    _, _, lpath = _repull_paths(data_dir, repull_dir)
     try:
         os.remove(lpath)
     except FileNotFoundError:
@@ -1258,56 +1264,89 @@ def _repull_missing(target_conds, manifest_conds):
     return [c for c in target_conds if c not in mset]
 
 
-def repull(data_dir, enum_min, enum_max):
-    """POPRAVKA12 Dif2 (RUN tolko po slovu): sbor syryh /trades po vsem vnutriokonnym ATP/WTA rynkam v
-    trades_raw_win/. Manifest na rynok, resume, retry 5x(1..16s) tolko transient, coverage fail-fast,
-    itogi kazhdye 200. Guard-lock ot parallelnogo zapuska s kollektorom."""
-    set_window(WIN_START, WIN_END_EXCL)
-    d, mpath, _ = _repull_paths(data_dir)
-    acquire_repull_lock(data_dir)
+def _validate_run_source(source):
+    """Trebovanie (v): probnye (dry) dannye ne dopuskayutsya v Prohod B (run)."""
+    if source == "raw_win_dry":
+        raise AmbiguousInput("run/Prohod B: source=raw_win_dry ZAPRESHCHYON -- probnye (dry) dannye "
+                             "v Prohod B ne dopuskayutsya (ispol'zuy 'raw_win' posle polnogo repull)")
+    return source
+
+
+def repull(data_dir, enum_min, enum_max, win_start, win_end, repull_dir=REPULL_DIR_NAME, dry=False):
+    """POPRAVKA12 Dif2 (po slovu): sbor syryh /trades po ATP/WTA rynkam okna [win_start..win_end) v repull_dir/.
+    dry=False -> polnaya vykachka v trades_raw_win/ (kontrol 4068, coverage fail-fast, n_unr<=1 fail-fast).
+    dry=True  -> PROBNAYA podoknnaya vykachka v trades_raw_win_dry/ (bez kontrolya 4068), otdelnyy manifest+lock.
+    Manifest na rynok, resume po sha, retry 5x(1..16s) tolko transient, coverage fail-fast na OTSUTSTVUYUSHCHIY
+    rynok (ne na flag), itogi kazhdye 200. Guard-lock ot parallelnogo zapuska s kollektorom."""
+    label = "repull-dry" if dry else "repull"
+    set_window(win_start, win_end)
+    d, _, _ = _repull_paths(data_dir, repull_dir)
+    acquire_repull_lock(data_dir, repull_dir)
     try:
         markets_all = enumerate_window(enum_min, enum_max)
         in_window, comp, gsts = window_composition(markets_all)
         targets = [m for m in in_window.values() if m["tier"] in DECISION_TIERS]
         if not targets:
-            raise AmbiguousInput("re-pull: net ATP/WTA rynkov v okne -- proveryat' okno/enumeraciyu")
+            raise AmbiguousInput("%s: net ATP/WTA rynkov v okne [%s..%s) -- proveryat' okno/enumeraciyu"
+                                 % (label, win_start, win_end))
         atp_wta = comp["atp"]["gst_in_win"] + comp["wta"]["gst_in_win"]
-        print("[repull] rynkov-celey ATP/WTA v okne = %d (kontrol %d..%d, throttle %d/10s, workers=%d)"
-              % (len(targets), CONTROL_LO, CONTROL_HI, MAX_PER_10S, WORKERS))
-        if not (CONTROL_LO <= atp_wta <= CONTROL_HI):
-            raise AmbiguousInput("re-pull KONTROL PROVALEN: ATP+WTA=%d vne [%d..%d] -> STOP DO sbora"
-                                 % (atp_wta, CONTROL_LO, CONTROL_HI))
-        done = load_repull_manifest(data_dir)
+        print("[%s] okno [%s..%s): rynkov-celey ATP/WTA = %d (throttle %d/10s, workers=%d) -> %s"
+              % (label, win_start, win_end, len(targets), MAX_PER_10S, WORKERS, d))
+        if not dry:
+            # kontrol 4068 tolko dlya polnoy vykachki; podokno men'she -> kontrol NE primenyaetsya
+            if not (CONTROL_LO <= atp_wta <= CONTROL_HI):
+                raise AmbiguousInput("re-pull KONTROL PROVALEN: ATP+WTA=%d vne [%d..%d] -> STOP DO sbora"
+                                     % (atp_wta, CONTROL_LO, CONTROL_HI))
+        done = load_repull_manifest(data_dir, repull_dir)
         todo = [m for m in targets if m["cond"] not in done]
-        print("[repull] gotovo (resume) = %d; k sboru = %d" % (len(done), len(todo)))
+        print("[%s] gotovo (resume) = %d; k sboru = %d" % (label, len(done), len(todo)))
         t0 = time.time(); n_done = 0; n_unreach = 0
         for m in todo:
             rows, n_pages, offset_cap_hit, unreach = pull_trades_manifest(m["cond"])
-            fname, sha = write_trades_raw_win(data_dir, m["cond"], rows)
+            fname, sha = write_trades_raw_win(data_dir, m["cond"], rows, repull_dir=repull_dir)
             append_repull_manifest(data_dir, {
                 "cond": m["cond"], "slug": m["slug"], "tier": m["tier"],
                 "gst": (int(m["gst"]) if m["gst"] is not None else None),
                 "n_trades": len(rows), "n_pages": n_pages,
                 "offset_cap_hit": bool(offset_cap_hit),
                 "completeness_unreachable": bool(unreach),
-                "file": fname, "sha": sha, "status": "ok"})
+                "file": fname, "sha": sha, "status": "ok"}, repull_dir=repull_dir)
             n_done += 1; n_unreach += (1 if unreach else 0)
             if n_done % 200 == 0:
                 el = time.time() - t0; rate = (n_done / el) if el else 0.0
-                print("    [repull] %d/%d | %.1f rynkov/s | nedostizhimyh=%d | retry_ok=%d"
-                      % (n_done, len(todo), rate, n_unreach, _retries_ok[0]))
-        final = load_repull_manifest(data_dir)
+                print("    [%s] %d/%d | %.1f rynkov/s | nedostizhimyh=%d | retry_ok=%d"
+                      % (label, n_done, len(todo), rate, n_unreach, _retries_ok[0]))
+        final = load_repull_manifest(data_dir, repull_dir)
         missing = _repull_missing([m["cond"] for m in targets], final.keys())
         cov = len(targets) - len(missing)
-        print("[repull] coverage: %d/%d rynkov v manifeste (ok)" % (cov, len(targets)))
+        print("[%s] coverage: %d/%d rynkov v manifeste (ok)" % (label, cov, len(targets)))
         if missing:
-            raise AmbiguousInput("re-pull COVERAGE PROVALEN: ne sobrano %d/%d -> STOP. Primer: %s"
-                                 % (len(missing), len(targets), ", ".join(missing[:20])))
-        n_unr_total = sum(1 for r in final.values() if r.get("completeness_unreachable"))
-        print("[repull] GOTOVO: %d rynkov | nedostizhimyh predmatch=%d | retry_ok=%d -> %s"
-              % (len(targets), n_unr_total, _retries_ok[0], d))
+            raise AmbiguousInput("%s COVERAGE PROVALEN: ne sobrano %d/%d (otsutstvuyushchie rynki) -> STOP. Primer: %s"
+                                 % (label, len(missing), len(targets), ", ".join(sorted(missing)[:20])))
+        rows_total   = sum(int(r.get("n_trades", 0)) for r in final.values())
+        offcap_total = sum(1 for r in final.values() if r.get("offset_cap_hit"))
+        unr_total    = sum(1 for r in final.values() if r.get("completeness_unreachable"))
+        unr_markets  = sorted(c for c, r in final.items() if r.get("completeness_unreachable"))
+        if dry:
+            # trebovanie (a): otdelnaya svodka pokrytiya podokna
+            print("[repull-dry] SVODKA PODOKNA [%s..%s): ozhidalos'=%d | sobrano=%d | strok=%d | "
+                  "offset_cap_hit=%d | completeness_unreachable=%d | retry_ok=%d -> %s"
+                  % (win_start, win_end, len(targets), len(final), rows_total,
+                     offcap_total, unr_total, _retries_ok[0], d))
+        else:
+            # trebovanie (b): sravnenie n_unr_total s prinyatym progonom (rovno 1)
+            print("[repull] GOTOVO: %d rynkov | strok=%d | offset_cap_hit=%d | nedostizhimyh predmatch=%d | "
+                  "retry_ok=%d -> %s" % (len(targets), rows_total, offcap_total, unr_total, _retries_ok[0], d))
+            print("[repull] nedostizhimye rynki (%d): %s"
+                  % (unr_total, (", ".join(unr_markets) if unr_markets else "(net)")))
+            if unr_total > ACCEPTED_UNREACHABLE:
+                raise AmbiguousInput(
+                    "re-pull STOP (trebovanie b): completeness_unreachable=%d > prinyatyh %d. "
+                    "Prinyatyy progon: rovno 1 rynok (%s). Bolee odnogo -> vykachka idyot INACHE, chem prinyataya. "
+                    "K sverke (verify-passa) NE perehodim. Nedostizhimye: %s"
+                    % (unr_total, ACCEPTED_UNREACHABLE, ACCEPTED_UNREACHABLE_MARKET, ", ".join(unr_markets)))
     finally:
-        release_repull_lock(data_dir)
+        release_repull_lock(data_dir, repull_dir)
 
 
 def _load_parquet_ntrades_sum(path):
@@ -1754,8 +1793,28 @@ def _selftest():
     _cc = _cascade_count(_fv, _bv)
     assert _cc["pairs_lost"] == 2 and _cc["wallets_crossed_down"] == 1 and _cc["markets_losing_pairs"] == 2
 
+    # -- OBYAZATELNAYA PRAVKA: fizicheskaya izolyaciya dry-direktorii ot polnoy --
+    _ti = _tf.mkdtemp()
+    _fnx, _shx = write_trades_raw_win(_ti, "cD", _rows_a, repull_dir=REPULL_DIR_DRY)
+    append_repull_manifest(_ti, {"cond": "cD", "file": _fnx, "sha": _shx, "status": "ok",
+                                 "completeness_unreachable": False}, repull_dir=REPULL_DIR_DRY)
+    assert "cD" in load_repull_manifest(_ti, repull_dir=REPULL_DIR_DRY)   # zapis' vidna v dry-manifeste
+    assert "cD" not in load_repull_manifest(_ti)                         # v OSNOVNOM manifeste PUSTO
+    _pd, _, _ = _repull_paths(_ti, repull_dir=REPULL_DIR_DRY)
+    _pn, _, _ = _repull_paths(_ti)
+    assert _pd.endswith("trades_raw_win_dry") and _pn.endswith("trades_raw_win") and _pd != _pn
+    _rrd, _crd = read_trades_raw_win(_ti, "cD", repull_dir=REPULL_DIR_DRY)
+    assert _rrd == _rows_a and _crd is True
+
+    # -- trebovanie (v): raw_win_dry zapreshchyon kak vhod dlya run (Prohod B) --
+    assert _validate_run_source("network") == "network" and _validate_run_source("raw_win") == "raw_win"
+    try:
+        _validate_run_source("raw_win_dry"); assert False
+    except AmbiguousInput:
+        pass
+
     d2_state = ("OK (repull retry/backoff-1..16 + manifest/resume-sha + offcap/unreach + lock + "
-                "coverage + passA-1e-9+sumNt + cascade count-only)")
+                "coverage + passA-1e-9+sumNt + cascade count-only + dry/full-izolyaciya + run-guard-raw_win_dry)")
 
     # throttle concurrency
     errs = []
@@ -1803,15 +1862,20 @@ def main():
         set_window("2026-02-01", "2026-04-28")
         mode_enum(data_dir)
     elif mode == "run":
+        _validate_run_source(source)   # trebovanie (v): raw_win_dry v Prohod B zapreshchyon
         set_window("2026-02-01", "2026-04-28")
         collect(data_dir, ENUM_END_MIN, ENUM_END_MAX, do_control=True, dry=False, p11=p11, source=source)
     elif mode == "dryrun":
-        # DOBAVKA2: srez 2026-02-01..2026-02-07 (poluotkryto do 02-08). Kontrol 4068 NE primenyaetsya.
+        # SHAG 1 priyomki: podoknnyy PROBNYY re-pull -> trades_raw_win_dry (otdelnyy manifest+lock),
+        # zatem collect chitaet TOLKO iz nego. V trades_raw_win NICHEGO ne pishetsya. do_control=False.
+        repull(data_dir, "2026-01-01", "2026-02-22", "2026-02-01", "2026-02-08",
+               repull_dir=REPULL_DIR_DRY, dry=True)
         set_window("2026-02-01", "2026-02-08")
-        collect(data_dir, "2026-01-01", "2026-02-22", do_control=False, dry=True, p11=p11, source=source)
+        collect(data_dir, "2026-01-01", "2026-02-22", do_control=False, dry=True, p11=p11, source="raw_win_dry")
     elif mode == "repull":
-        set_window("2026-02-01", "2026-04-28")
-        repull(data_dir, ENUM_END_MIN, ENUM_END_MAX)
+        # SHAG 3: polnaya vykachka -> trades_raw_win (kontrol 4068 + coverage fail-fast + n_unr<=1)
+        repull(data_dir, ENUM_END_MIN, ENUM_END_MAX, "2026-02-01", "2026-04-28",
+               repull_dir=REPULL_DIR_NAME, dry=False)
     elif mode == "verify-passa":
         set_window("2026-02-01", "2026-04-28")
         verify_pass_a(data_dir)
