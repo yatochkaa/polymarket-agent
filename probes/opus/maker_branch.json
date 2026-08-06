@@ -1,0 +1,242 @@
+{
+ "branch": "maker: cost = spread half only, taker fee zero (frozen formula: maker pays no fee)",
+ "se_cost": {
+  "value": 0.00017918060263918321,
+  "base": 0.0001576535784738516,
+  "imputation_extra_var": 7.25103755652999e-09,
+  "rule": "P13 3: clustered SE of the spread component; P13 1.4 imputation term added"
+ },
+ "spread": {
+  "pairs": 7535,
+  "measured": 4307,
+  "imputed": 3228,
+  "median": 0.005,
+  "mean": 0.006372399692879323
+ },
+ "net_edge": {
+  "equal|observed": {
+   "mean": 0.0052632770654745635,
+   "se_edge": 0.0012387991877996893,
+   "se_cost": 0.00017918060263918321,
+   "se": 0.0012516905033015592,
+   "tag": "day",
+   "clusters": 86,
+   "df": 85,
+   "t": 4.20493488733175,
+   "t_no_secost": 4.2486926995996885,
+   "sd_unit": 0.10865221529944415
+  },
+  "equal|shrunk": {
+   "mean": 0.0007277742123776282,
+   "se_edge": 0.0007885390845868039,
+   "se_cost": 0.00017918060263918321,
+   "se": 0.0008086405729884789,
+   "tag": "day",
+   "clusters": 86,
+   "df": 85,
+   "t": 0.899997151624492,
+   "t_no_secost": 0.922939936146581,
+   "sd_unit": 0.07019354177766944
+  },
+  "weighted|observed": {
+   "mean": 0.016414613401894016,
+   "se_edge": 0.0066930989541892335,
+   "se_cost": 0.00017918060263918321,
+   "se": 0.006695496941895437,
+   "tag": "match",
+   "clusters": 3325,
+   "df": 85,
+   "t": 2.4515900080819364,
+   "t_no_secost": 2.4524683579674336,
+   "sd_unit": 0.5811984459007493
+  },
+  "weighted|shrunk": {
+   "mean": 0.007139165930527197,
+   "se_edge": 0.004322308468428128,
+   "se_cost": 0.00017918060263918321,
+   "se": 0.0043260208257251435,
+   "tag": "match",
+   "clusters": 3325,
+   "df": 85,
+   "t": 1.6502846884308524,
+   "t_no_secost": 1.651702089907401,
+   "sd_unit": 0.37551754599621395
+  }
+ },
+ "required_n": [
+  {
+   "scheme": "equal",
+   "edge": "observed",
+   "target": "t=3",
+   "crit": 3.090672740240186,
+   "n": 4070.715488218202,
+   "days": 46.460709801922725,
+   "window_ok": true
+  },
+  {
+   "scheme": "equal",
+   "edge": "observed",
+   "target": "t=2.5",
+   "crit": 2.5544008417928925,
+   "n": 2780.6274357838333,
+   "days": 31.736417034088788,
+   "window_ok": true
+  },
+  {
+   "scheme": "equal",
+   "edge": "shrunk",
+   "target": "t=3",
+   "crit": 3.090672740240186,
+   "n": 88860.14756300485,
+   "days": 1014.1965315016139,
+   "window_ok": false
+  },
+  {
+   "scheme": "equal",
+   "edge": "shrunk",
+   "target": "t=2.5",
+   "crit": 2.5544008417928925,
+   "n": 60698.65726962019,
+   "days": 692.7781391090493,
+   "window_ok": false
+  },
+  {
+   "scheme": "weighted",
+   "edge": "observed",
+   "target": "t=3",
+   "crit": 3.090672740240186,
+   "n": 11975.498887527823,
+   "days": 136.6811756206074,
+   "window_ok": false
+  },
+  {
+   "scheme": "weighted",
+   "edge": "observed",
+   "target": "t=2.5",
+   "crit": 2.5544008417928925,
+   "n": 8180.232900146545,
+   "days": 93.36428153376193,
+   "window_ok": false
+  },
+  {
+   "scheme": "weighted",
+   "edge": "shrunk",
+   "target": "t=3",
+   "crit": 3.090672740240186,
+   "n": 26428.441879020615,
+   "days": 301.63841521521243,
+   "window_ok": false
+  },
+  {
+   "scheme": "weighted",
+   "edge": "shrunk",
+   "target": "t=2.5",
+   "crit": 2.5544008417928925,
+   "n": 18052.76020555038,
+   "days": 206.0433983807851,
+   "window_ok": false
+  }
+ ],
+ "fill": {
+  "window_main_min": 60,
+  "rationale": "60 min matches the frozen p_ref horizon (P7 2) and D_WORK=60 of the spread estimator (P13 1.2)",
+  "by_window": {
+   "10": {
+    "optimistic": 0.45494359654943595,
+    "strict": 0.40610484406104846
+   },
+   "30": {
+    "optimistic": 0.5697412076974121,
+    "strict": 0.5101526211015263
+   },
+   "60": {
+    "optimistic": 0.6463171864631718,
+    "strict": 0.5796947577969476
+   },
+   "120": {
+    "optimistic": 0.7112143331121433,
+    "strict": 0.6418049104180491
+   }
+  },
+  "until_start": {
+   "optimistic": 0.8671532846715329,
+   "strict": 0.8138022561380226
+  },
+  "pairs_with_entry_time": 7535,
+  "minutes_to_start_median": 354.03333333333336
+ },
+ "adverse_selection": {
+  "all_pairs_edge": 0.0052632770654745635,
+  "filled_edge": 0.0022980429982245813,
+  "notfilled_edge": 0.010621417308425883,
+  "filled_strict_edge": 0.0015726783462342237,
+  "delta": -0.0029652340672499822,
+  "ratio": 0.4366182835593091
+ },
+ "decisive": {
+  "optimistic|observed": {
+   "n": 4870,
+   "mean": 0.0022980429982245813,
+   "se_edge": 0.0014707629733085462,
+   "se_cost": 0.00018948492615421264,
+   "se": 0.001482918831526211,
+   "t": 1.5496755111400464,
+   "df": 85,
+   "n_req_t3": 19371.063479992277,
+   "n_req_t25": 13232.00079412908,
+   "fill_share": 0.6463171864631718,
+   "attempts_t3": 29971.450374074295,
+   "days_t3": 342.07619328908316,
+   "attempts_t25": 20472.921146563167,
+   "days_t25": 233.66566662325582
+  },
+  "optimistic|shrunk": {
+   "n": 4870,
+   "mean": -0.0012836766225409442,
+   "se_edge": 0.00093295759030599,
+   "se_cost": 0.00018948492615421264,
+   "se": 0.0009520054635080761,
+   "t": -1.348392075199529,
+   "df": 85,
+   "n_req_t3": null,
+   "n_req_t25": null,
+   "fill_share": 0.6463171864631718,
+   "attempts_t3": null,
+   "days_t3": null,
+   "attempts_t25": null,
+   "days_t25": null
+  },
+  "strict|observed": {
+   "n": 4368,
+   "mean": 0.0015726783462342237,
+   "se_edge": 0.0015692511497607513,
+   "se_cost": 0.0002051028499158545,
+   "se": 0.0015825979748720286,
+   "t": 0.9937320603240333,
+   "df": 85,
+   "n_req_t3": 42252.2723084863,
+   "n_req_t25": 28861.714346097007,
+   "fill_share": 0.5796947577969476,
+   "attempts_t3": 72887.10435999182,
+   "days_t3": 831.8897780434899,
+   "attempts_t25": 49787.778754084466,
+   "days_t25": 568.2479031194478
+  },
+  "strict|shrunk": {
+   "n": 4368,
+   "mean": -0.0018255325012368575,
+   "se_edge": 0.0009968114924233194,
+   "se_cost": 0.0002051028499158545,
+   "se": 0.0010176936329125829,
+   "t": -1.7937937727017947,
+   "df": 85,
+   "n_req_t3": null,
+   "n_req_t25": null,
+   "fill_share": 0.5796947577969476,
+   "attempts_t3": null,
+   "days_t3": null,
+   "attempts_t25": null,
+   "days_t25": null
+  }
+ }
+}
