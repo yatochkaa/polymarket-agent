@@ -1,0 +1,62 @@
+[sha256] collect_window_v1.py: FAE5999CC9EEBEAE26087BFEDF449A86DA1156F8C566AE6976C5D2A937543D73
+[spread] markets (atp/wta complete): 4067
+[spread] 500/4067 markets | pairs 54978 | 8.0s (0.016s/mkt)
+[spread] 1000/4067 markets | pairs 108594 | 15.5s (0.015s/mkt)
+[spread] 1500/4067 markets | pairs 165269 | 24.2s (0.016s/mkt)
+[spread] 2000/4067 markets | pairs 220233 | 31.8s (0.016s/mkt)
+[spread] 2500/4067 markets | pairs 275032 | 38.8s (0.016s/mkt)
+[spread] 3000/4067 markets | pairs 329426 | 45.9s (0.015s/mkt)
+[spread] 3500/4067 markets | pairs 388027 | 54.3s (0.016s/mkt)
+[spread] 4000/4067 markets | pairs 443208 | 62.8s (0.016s/mkt)
+[spread] pass done: 4067 markets, 449342 pairs with entry, 63.8s
+[spread] pairs with prematch (net!=0 filtered): 453424
+
+=== HARD CHECK: clip == max(raw,0) elementwise (D=60 and D=10) ===
+  D=60: defined rows=250302, violations=0
+  D=10: defined rows=130719, violations=0
+  OK: clip == max(raw,0) on every defined row.
+
+[decisive] allowances loaded: 319
+[decisive] decisive-set pairs (control 81941): 81941
+
+=== SELF-CHECK (N_min=20 reproduces frozen estimator) ===
+  measurable D=60: 12779 (control 12779) -> OK
+  |M*|: 5189 (control 5189) -> OK
+
+=== PER-THRESHOLD REPORT (D=60 unless stated) ===
+
+--- N_min = 5 ---
+  1) measurable pairs total: 71550
+  2) measurable in decisive set: 9036  (share of 81941: 0.110274)
+  3) ATP: median=0.005039 p90=0.016372 n=52654 | WTA: median=0.005247 p90=0.021711 n=18896
+     (median over all measurable: 0.005077, n=71550)
+  4) frac negative (raw<0): 0.181831 | frac zero (clip==0): 0.181957  (same set, n=71550)
+  5) |M*| (meas at D=60 & D=10): 27282 | mean pairwise diff mean(spc60-spc10)=0.00104458 (n=27282)
+
+--- N_min = 10 ---
+  1) measurable pairs total: 30357
+  2) measurable in decisive set: 3332  (share of 81941: 0.040663)
+  3) ATP: median=0.005150 p90=0.028788 n=22188 | WTA: median=0.005000 p90=0.033761 n=8169
+     (median over all measurable: 0.005077, n=30357)
+  4) frac negative (raw<0): 0.233851 | frac zero (clip==0): 0.233851  (same set, n=30357)
+  5) |M*| (meas at D=60 & D=10): 12075 | mean pairwise diff mean(spc60-spc10)=0.00123318 (n=12075)
+
+--- N_min = 20 ---
+  1) measurable pairs total: 12779
+  2) measurable in decisive set: 1210  (share of 81941: 0.014767)
+  3) ATP: median=0.005000 p90=0.049567 n=9317 | WTA: median=0.004630 p90=0.050961 n=3462
+     (median over all measurable: 0.005000, n=12779)
+  4) frac negative (raw<0): 0.311135 | frac zero (clip==0): 0.311135  (same set, n=12779)
+  5) |M*| (meas at D=60 & D=10): 5189 | mean pairwise diff mean(spc60-spc10)=0.00108514 (n=5189)
+
+=== DISTINCTNESS GUARD (rows must differ; frozen mask would repeat) ===
+  n_meas     : [71550, 30357, 12779] -> OK-distinct
+  n_dec      : [9036, 3332, 1210] -> OK-distinct
+  n_mstar    : [27282, 12075, 5189] -> OK-distinct
+  med_atp    : [0.005039060270793358, 0.0051500759989611955, 0.004999999999999977] -> OK-distinct
+  p90_atp    : [0.016371897758396918, 0.02878775203824005, 0.04956660508100358] -> OK-distinct
+  med_wta    : [0.005246553181253999, 0.0050000000000000044, 0.004630300857579414] -> OK-distinct
+  p90_wta    : [0.02171130436780669, 0.03376064667454748, 0.0509608821179446] -> OK-distinct
+  frac_neg   : [0.18183088749126486, 0.23385051223770464, 0.31113545660849834] -> OK-distinct
+[out] CSV written: C:\Users\awf\Desktop\test\probes\opus\spread_estimator_nmin.csv
+[out] MD written: C:\Users\awf\Desktop\test\probes\opus\nmin_recompute.md
