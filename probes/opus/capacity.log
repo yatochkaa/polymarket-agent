@@ -1,0 +1,125 @@
+[env] python 3.13.5 numpy 2.3.1
+[in] trades dir: C:\Users\awf\Desktop\test\data\trades_raw_win
+[in] candidates: 12 distinct wallets, 14 tier-rows
+[cfg] D=60 min, target move=0.005, min_obs_per_market=20, BUY=+size SELL=-size
+[in] manifest rows: 4068
+  [scan] 500/4068 markets, 2264 pair-records, 4.3s
+  [scan] 1000/4068 markets, 4700 pair-records, 8.1s
+  [scan] 1500/4068 markets, 7220 pair-records, 12.1s
+  [scan] 2000/4068 markets, 9781 pair-records, 16.9s
+  [scan] 2500/4068 markets, 11896 pair-records, 22.7s
+  [scan] 3000/4068 markets, 14207 pair-records, 30.2s
+  [scan] 3500/4068 markets, 15965 pair-records, 37.9s
+  [scan] 4000/4068 markets, 17265 pair-records, 45.0s
+[scan] done: rows=4299928 bad_price_dropped=2 pair_records=17468 markets_with_lambda=8086 45.9s
+
+=== IMPACT MODEL: lambda per market-token, pooled fallback per tier ===
+  tier=atp pooled: n_obs=569573 lambda_signed=1.88638e-07 (R2=0.0004732) lambda_unsigned=3.00885e-07 (R2=0.001204)
+      capacity at pooled lambda: signed 26505.8 contracts | unsigned 16617.7 contracts
+  tier=wta pooled: n_obs=282808 lambda_signed=3.62255e-07 (R2=0.0005942) lambda_unsigned=7.97895e-07 (R2=0.002883)
+      capacity at pooled lambda: signed 13802.4 contracts | unsigned 6266.49 contracts
+  market-tokens with own lambda (n_obs>=20): 7034 of 8086; rest fall back to tier lambda
+  per-market lambda_signed:   med=2.67096e-06 p10=-1.39088e-06 p90=2.20305e-05 negative=1100 of 7034
+  per-market lambda_unsigned: med=7.2184e-06 p10=7.22535e-07 p90=4.94672e-05 nonpositive=1
+  pair-records with non-positive signed lambda (capacity undefined/infinite): 2705 of 17468
+
+=== HEADLINE: contracts / USD absorbable before 0.005 price move (tape estimate) ===
+  lambda source: own-market 16825, tier-fallback 643 (3.681% of pairs)
+  ALL candidate pairs        pairs=17468 pool_vol_med=     2355 pool_n_med=    30 | cap_signed med=     1709 p10=    279.5 USD med=      832 p10=    123.9 | cap_unsigned med=    873.4 USD med=    417.7
+  ALL, own-market lambda     pairs=16825 pool_vol_med=     2556 pool_n_med=    31 | cap_signed med=     1553 p10=    268.4 USD med=    765.2 p10=    117.4 | cap_unsigned med=    826.7 USD med=    393.4
+  tier=atp                   pairs=11256 pool_vol_med=     2193 pool_n_med=    29 | cap_signed med=     1591 p10=    261.5 USD med=    784.9 p10=    112.5 | cap_unsigned med=    864.7 USD med=    410.4
+  tier=wta                   pairs= 6212 pool_vol_med=     2651 pool_n_med=    31 | cap_signed med=     1927 p10=    301.8 USD med=    967.8 p10=    146.8 | cap_unsigned med=    902.7 USD med=    436.4
+
+=== PER WALLET (all tiers pooled) ===
+  0xa509ae94 atp,wta         pairs= 3668 pool_vol_med=     3189 pool_n_med=    35 | cap_signed med=     1840 p10=      300 USD med=    884.6 p10=    132.3 | cap_unsigned med=    985.2 USD med=    454.5
+  0x972bf37c wta             pairs= 3409 pool_vol_med=     3049 pool_n_med=    34 | cap_signed med=     1877 p10=    291.3 USD med=    910.3 p10=    128.4 | cap_unsigned med=    928.8 USD med=      439
+  0x200ffb57 atp             pairs= 2606 pool_vol_med=     2228 pool_n_med=    29 | cap_signed med=     1891 p10=    291.9 USD med=     1023 p10=    142.4 | cap_unsigned med=     1044 USD med=    554.8
+  0x204f72f3 atp             pairs= 2062 pool_vol_med=     2541 pool_n_med=    38 | cap_signed med=     1492 p10=    235.6 USD med=    745.5 p10=    98.77 | cap_unsigned med=    687.9 USD med=    356.6
+  0x2652dd11 wta             pairs= 1017 pool_vol_med=     2102 pool_n_med=    27 | cap_signed med=     2335 p10=      353 USD med=     1278 p10=      192 | cap_unsigned med=     1221 USD med=      664
+  0xde9f7f4e atp,wta         pairs=  915 pool_vol_med=     3896 pool_n_med=    51 | cap_signed med=     1245 p10=    248.4 USD med=      630 p10=    104.5 | cap_unsigned med=    520.5 USD med=    256.2
+  0x70f96881 atp             pairs=  886 pool_vol_med=     1706 pool_n_med=    24 | cap_signed med=     1283 p10=    243.8 USD med=    660.8 p10=    126.3 | cap_unsigned med=    693.5 USD med=    363.4
+  0xfbe49f06 atp             pairs=  768 pool_vol_med=     1148 pool_n_med=    16 | cap_signed med=     1611 p10=    321.1 USD med=    842.5 p10=    145.2 | cap_unsigned med=    977.9 USD med=    487.3
+  0xdbdd4515 atp             pairs=  681 pool_vol_med=     1570 pool_n_med=    25 | cap_signed med=     1776 p10=    323.3 USD med=      788 p10=    129.3 | cap_unsigned med=    942.3 USD med=    431.4
+  0xc4dbd563 atp             pairs=  653 pool_vol_med=    461.9 pool_n_med=     7 | cap_signed med=     1190 p10=    203.9 USD med=    364.2 p10=    49.49 | cap_unsigned med=    614.3 USD med=    171.5
+  0x9663a1bc wta             pairs=  566 pool_vol_med=     2153 pool_n_med=    28 | cap_signed med=     1443 p10=    254.1 USD med=    566.7 p10=    92.45 | cap_unsigned med=    814.4 USD med=    335.9
+  0x3d7817cc atp             pairs=  237 pool_vol_med=    591.7 pool_n_med=    11 | cap_signed med=     1390 p10=    193.7 USD med=    776.9 p10=    101.9 | cap_unsigned med=    763.7 USD med=    402.8
+
+=== PER WALLET x TIER ===
+  0x200ffb57 atp             pairs= 1582 pool_vol_med=     2149 pool_n_med=    29 | cap_signed med=     1831 p10=    294.5 USD med=    956.2 p10=    134.1 | cap_unsigned med=     1016 USD med=    540.8
+  0x204f72f3 atp             pairs= 1356 pool_vol_med=     2180 pool_n_med=    36 | cap_signed med=     1288 p10=    209.4 USD med=    659.6 p10=     88.3 | cap_unsigned med=    655.5 USD med=    329.1
+  0x2652dd11 wta             pairs=  429 pool_vol_med=     2037 pool_n_med=    26 | cap_signed med=     1612 p10=    285.3 USD med=    997.5 p10=    174.6 | cap_unsigned med=    927.5 USD med=    510.1
+  0x3d7817cc atp             pairs=  179 pool_vol_med=    584.2 pool_n_med=    10 | cap_signed med=     1284 p10=    147.6 USD med=    609.5 p10=    90.45 | cap_unsigned med=    695.2 USD med=    348.4
+  0x70f96881 atp             pairs=  638 pool_vol_med=     1467 pool_n_med=    24 | cap_signed med=     1208 p10=    230.1 USD med=    593.9 p10=    114.2 | cap_unsigned med=    685.6 USD med=    342.5
+  0x9663a1bc wta             pairs=  142 pool_vol_med=     2360 pool_n_med=    32 | cap_signed med=     1938 p10=    288.6 USD med=    789.3 p10=    95.98 | cap_unsigned med=    883.6 USD med=    361.7
+  0x972bf37c wta             pairs= 1251 pool_vol_med=     3241 pool_n_med=    33 | cap_signed med=     1946 p10=      323 USD med=    991.4 p10=    152.9 | cap_unsigned med=    916.8 USD med=    449.6
+  0xa509ae94 atp             pairs= 2328 pool_vol_med=     2970 pool_n_med=    34 | cap_signed med=     1762 p10=    281.3 USD med=      848 p10=    123.7 | cap_unsigned med=    960.2 USD med=    440.6
+  0xa509ae94 wta             pairs= 1340 pool_vol_med=     3723 pool_n_med=    36 | cap_signed med=     1975 p10=    322.4 USD med=    956.1 p10=      158 | cap_unsigned med=     1037 USD med=    473.8
+  0xc4dbd563 atp             pairs=  486 pool_vol_med=    434.2 pool_n_med=     7 | cap_signed med=     1026 p10=      180 USD med=    318.4 p10=    50.48 | cap_unsigned med=    550.6 USD med=    168.9
+  0xdbdd4515 atp             pairs=  453 pool_vol_med=     1497 pool_n_med=    25 | cap_signed med=     1625 p10=    320.6 USD med=    735.2 p10=    137.8 | cap_unsigned med=    960.5 USD med=    433.8
+  0xde9f7f4e atp             pairs=  527 pool_vol_med=     3946 pool_n_med=    52 | cap_signed med=     1163 p10=    244.9 USD med=    577.4 p10=    96.93 | cap_unsigned med=    504.6 USD med=    248.2
+  0xde9f7f4e wta             pairs=  388 pool_vol_med=     3815 pool_n_med=    48 | cap_signed med=     1485 p10=    253.8 USD med=    706.1 p10=    105.7 | cap_unsigned med=    549.5 USD med=    277.3
+  0xfbe49f06 atp             pairs=  537 pool_vol_med=     1174 pool_n_med=    15 | cap_signed med=     1466 p10=    295.4 USD med=    784.9 p10=      136 | cap_unsigned med=    922.5 USD med=    472.3
+
+=== DECILES BY MARKET PREMATCH VOLUME (thin vs thick, data-driven; no tournament classes) ===
+  market-token universe: 8106, prematch volume contracts: med=5461.71 p10=603.352 p90=37154.9 max=2.01178e+06
+  decile edges (contracts): 10.99 1641 3152 4667 6689 9430 1.347e+04 1.904e+04 2.901e+04 5.123e+04 2.012e+06
+  deciles are pair-weighted (each ~10%% of candidate pairs); fb%% = share using tier-fallback lambda
+  dec    vol range (contracts)   pairs   fb%    cap_s med    USD_s med    cap_u med    USD_u med
+  D1     10.99..1641              1745  32.2        573.2        319.3        182.9        93.41
+  D2     1641..3152               1749   3.1        489.1        231.1        220.8        111.9
+  D3     3152..4667               1744   0.9        705.1        331.7        344.9        165.9
+  D4     4667..6689               1747   0.6        824.1        412.4        453.9        232.5
+  D5     6689..9430               1748   0.1         1072        513.7        587.9        279.1
+  D6     9430..1.347e+04          1746   0.0         1341        649.1        833.1        381.7
+  D7     1.347e+04..1.904e+04     1743   0.1         2365         1129         1400        664.1
+  D8     1.904e+04..2.901e+04     1752   0.0         2778         1474         1827        887.9
+  D9     2.901e+04..5.123e+04     1747   0.0         4360         2215         3171         1464
+  D10    5.123e+04..2.012e+06     1747   0.0    1.063e+04         5473         7214         3417
+
+=== POOL IN ENTRY WINDOW (+-60 min, other participants, same token) ===
+  scope                       pairs    vol_med      n_med     sz_med     sz_p90     sz_max
+  ALL                         17468       2355         30      18.31      144.6      693.3
+  tier=atp                    11256       2193         29      18.28        143      641.5
+  tier=wta                     6212       2651         31      18.35      147.5        794
+  0x200ffb57                   2606       2228         29      19.66        150      646.8
+  0x204f72f3                   2062       2541         38      12.74        108      662.4
+  0x2652dd11                   1017       2102         27         19      153.6        665
+  0x3d7817cc                    237      591.7         11      17.14        104      206.9
+  0x70f96881                    886       1706         24      18.44      122.3      503.4
+  0x9663a1bc                    566       2153         28      21.96        150      592.6
+  0x972bf37c                   3409       3049         34         20      163.4        900
+  0xa509ae94                   3668       3189         35      19.85      162.4      882.4
+  0xc4dbd563                    653      461.9          7      20.95      106.5      262.8
+  0xdbdd4515                    681       1570         25         15      123.2      488.3
+  0xde9f7f4e                    915       3896         51      13.15      133.4       1000
+  0xfbe49f06                    768       1148         16      18.42      163.5      482.1
+  pairs with EMPTY pool (no other participant in window): 228 of 17468
+
+=== NAMED WALLETS (own executed size = what market DID absorb, NOT capacity) ===
+  0x70f96881 tiers=atp pairs=886 markets=822
+     own entry size per pair (contracts): med=69.55 p90=201.8 max=1120
+     own entry notional per pair (USD)  : med=37.75 p90=115.2 max=650.8
+     CAPACITY signed  : contracts med=1283 p10=243.8 | USD med=660.8 p10=126.3
+     CAPACITY unsigned: contracts med=693.5 p10=113.7 | USD med=363.4 p10=58.66
+     own_size / capacity_signed: med=0.0384 p90=0.3374 share of pairs above 1.0 = 2.731%
+  0x204f72f3 tiers=atp pairs=2062 markets=1534
+     own entry size per pair (contracts): med=205.4 p90=2241 max=3.429e+04
+     own entry notional per pair (USD)  : med=100.6 p90=1193 max=2.701e+04
+     CAPACITY signed  : contracts med=1492 p10=235.6 | USD med=745.5 p10=98.77
+     CAPACITY unsigned: contracts med=687.9 p10=112.7 | USD med=356.6 p10=48.55
+     own_size / capacity_signed: med=0.1097 p90=1.593 share of pairs above 1.0 = 16.16%
+
+=== SENSITIVITY: signed vs unsigned answer to the headline question ===
+  pairs compared: 14763
+  cap_unsigned / cap_signed: med=0.6771 p10=0.2178 p90=0.9463
+  share of pairs with capacity >=   50 contracts: signed 99.3% | unsigned 98.2%
+  share of pairs with capacity >=  100 contracts: signed 97.66% | unsigned 94.4%
+  share of pairs with capacity >=  250 contracts: signed 91.29% | unsigned 82.39%
+  share of pairs with capacity >=  500 contracts: signed 79.81% | unsigned 66.14%
+  share of pairs with capacity >= $  50: signed 96.75% | unsigned 92.95%
+  share of pairs with capacity >= $ 100: signed 91.82% | unsigned 84.52%
+  share of pairs with capacity >= $ 250: signed 78.12% | unsigned 65.22%
+  share of pairs with capacity >= $ 500: signed 62.26% | unsigned 47.53%
+
+[out] per-pair CSV: C:\Users\awf\Desktop\test\probes\opus\capacity_pairs.csv (17468 rows)
+[done]
