@@ -1,0 +1,135 @@
+{
+ "definition": {
+  "hypothesis": "net edge (gross_delta - cost) of the pooled sample of 8 pre-declared wallets is positive",
+  "form": "single group test, no multiplicity correction",
+  "wallets": [
+   "0xde9f7f4e",
+   "0xa509ae94",
+   "0xdbdd4515",
+   "0x204f72f3",
+   "0x9663a1bc",
+   "0xfbe49f06",
+   "0x70f96881",
+   "0x3d7817cc"
+  ],
+  "tiers": "atp and wta pooled",
+  "cross_wallet_clustering": "one match shared by two candidates is ONE cluster"
+ },
+ "pooled": {
+  "n_pairs": 7535,
+  "distinct_wallets": 8,
+  "span_days": 86,
+  "pairs_per_day": 87.61627906976744,
+  "per_tier": {
+   "atp": 5026,
+   "wta": 2509
+  },
+  "per_wallet": {
+   "0xfbe49f06": 737,
+   "0xa509ae94": 2502,
+   "0x204f72f3": 1511,
+   "0x70f96881": 784,
+   "0x3d7817cc": 234,
+   "0xdbdd4515": 636,
+   "0xde9f7f4e": 623,
+   "0x9663a1bc": 508
+  }
+ },
+ "mean_tier": {
+  "atp": -0.0002018456572346492,
+  "wta": -0.002046350603447998
+ },
+ "r_tier": {
+  "atp": 0.6474,
+  "wta": 0.6104
+ },
+ "edge": {
+  "equal_weight_observed": 0.0127245401459854,
+  "equal_weight_shrunk": 0.007783440954019081,
+  "size_weighted_observed": 0.024299592538559355,
+  "size_weighted_shrunk": 0.015024145067192532,
+  "cluster_weighted_observed_cross": 0.010736046464017187,
+  "cluster_weighted_observed_nocross": 0.012724540145985402
+ },
+ "overlap": {
+  "distinct_matches": 3325,
+  "matches_multi_candidate": 2203,
+  "pairs_in_multi_matches": 6413,
+  "candidates_per_match_hist": {
+   "1": 1122,
+   "2": 962,
+   "3": 708,
+   "4": 353,
+   "5": 130,
+   "6": 47,
+   "7": 3
+  },
+  "distinct_days": 86,
+  "days_multi_candidate": 86
+ },
+ "se": {
+  "observed_nocross": 0.001370575800067161,
+  "observed_cross": 0.0012364655873259185,
+  "ratio": 0.9021504591466808,
+  "shrunk_nocross": 0.0008701177074271324,
+  "shrunk_cross": 0.0007816430542511997,
+  "shrunk_ratio": 0.8983187534045881,
+  "per_pair_dispersion_cross": 0.10733062594158135,
+  "per_pair_dispersion_nocross": 0.11897197951115875,
+  "t_observed_nocross": 9.284083481819739,
+  "t_observed_cross": 8.682851002134106,
+  "t_ratio_cross_over_nocross": 0.9352405134160009
+ },
+ "required_n": [
+  {
+   "target": "t=3",
+   "edge_kind": "observed edge",
+   "edge": 0.010736046464017187,
+   "sd_unit": 0.10733062594158135,
+   "n_required": 899.4997954425847,
+   "days_at_rate": 10.266354665967125,
+   "extra_pairs_beyond_window": 0.0,
+   "days_for_extra": 0.0
+  },
+  {
+   "target": "t=3",
+   "edge_kind": "shrunk edge",
+   "edge": 0.006500374136975125,
+   "sd_unit": 0.06785003896235174,
+   "n_required": 980.5415575952345,
+   "days_at_rate": 11.19131704753685,
+   "extra_pairs_beyond_window": 0.0,
+   "days_for_extra": 0.0
+  },
+  {
+   "target": "t=2.5",
+   "edge_kind": "observed edge",
+   "edge": 0.010736046464017187,
+   "sd_unit": 0.10733062594158135,
+   "n_required": 624.6526357240174,
+   "days_at_rate": 7.129412962477172,
+   "extra_pairs_beyond_window": 0.0,
+   "days_for_extra": 0.0
+  },
+  {
+   "target": "t=2.5",
+   "edge_kind": "shrunk edge",
+   "edge": 0.006500374136975125,
+   "sd_unit": 0.06785003896235174,
+   "n_required": 680.931637218913,
+   "days_at_rate": 7.77174794967837,
+   "extra_pairs_beyond_window": 0.0,
+   "days_for_extra": 0.0
+  }
+ ],
+ "weighting": {
+  "size_weighted_mean_cross": 0.024299592538559345,
+  "size_weighted_se_cross": 0.006494081450519308,
+  "size_weighted_t": 3.7418059387931137,
+  "equal_weight_t": 8.682851002134106,
+  "n_required_t3_size_weighted": 4843.543965119218,
+  "conclusion": "SAME direction (both positive)",
+  "contracts_top1pct_share": 30.481885586828945,
+  "contracts_top10pct_share": 77.20920200811163
+ }
+}
