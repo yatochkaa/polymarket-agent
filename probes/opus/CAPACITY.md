@@ -284,8 +284,23 @@ Madrid Open (81), Miami Open Qualification (69), BNP Paribas Open Qualification 
 |---|---|
 | `probes/opus/capacity.py` | скрипт (только чтение данных) |
 | `probes/opus/capacity.log` | дословный вывод консоли, ASCII |
-| `probes/opus/capacity_pairs.csv` | 17 468 записей кошелёк×рынок×токен, точность %.9g |
+| `probes/opus/capacity_pairs.csv` | 17 468 записей кошелёк×рынок×токен, точность %.9g (в коммит не входит) |
 | `probes/opus/CAPACITY.md` | этот отчёт |
 
 Вне `probes/opus/` ничего не изменялось; `data\trades_raw_win\` открывался только
 на чтение.
+
+### Провенанс невошедшей выгрузки
+
+`capacity_pairs.csv` в коммит не включён: его отсекает `.gitignore:4` правилом
+`*.csv`. Форсить не стали, поэтому фиксируем идентичность файла на диске.
+
+| Поле | Значение |
+|---|---|
+| Путь | `C:\Users\awf\Desktop\test\probes\opus\capacity_pairs.csv` |
+| Строк данных | 17 468 (плюс строка заголовка, всего 17 469) |
+| Размер | 6 636 795 байт |
+| SHA256 | `f57947a3771a9eee8d667049795cc94ed315aeb93f48b05d3fb78c768f92b9c3` |
+
+Файл воспроизводится повторным запуском `capacity.py`; все сводные числа этого
+отчёта взяты из `capacity.log` и из него же.
