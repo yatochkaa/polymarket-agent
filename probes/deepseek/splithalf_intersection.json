@@ -1,0 +1,96 @@
+{
+ "note": "Пересечение 14 прошедших фильтр 5 с подвыборкой split-half (n1>=50 и n2>=50). Адреса только здесь.",
+ "min_matches_half": 50,
+ "subsample_in_run": {
+  "atp": 143,
+  "wta": 51
+ },
+ "tiers": {
+  "atp": {
+   "passers_total": 9,
+   "in_intersection": 9,
+   "not_in_intersection": 0,
+   "in": [
+    {
+     "wallet": "0x200ffb575b936d297fcf39076ddf2b476ae07a96",
+     "n1": 583,
+     "n2": 580
+    },
+    {
+     "wallet": "0x204f72f35326db932158cba6adff0b9a1da95e14",
+     "n1": 424,
+     "n2": 584
+    },
+    {
+     "wallet": "0x3d7817cc7d19fd0f3a59592eb087fea03d1aa4cc",
+     "n1": 98,
+     "n2": 78
+    },
+    {
+     "wallet": "0x70f968816adc8dab24e09fd72c9269224cb8f25b",
+     "n1": 225,
+     "n2": 334
+    },
+    {
+     "wallet": "0xa509ae942ac8d8bc3f8c5df30cb6ae2c9b13ae46",
+     "n1": 746,
+     "n2": 854
+    },
+    {
+     "wallet": "0xc4dbd5631f003f3f7d10bc31338b1fe5c6ff7e0c",
+     "n1": 176,
+     "n2": 288
+    },
+    {
+     "wallet": "0xdbdd45150249e229eb4ca8aa48a30dca21faa5de",
+     "n1": 205,
+     "n2": 219
+    },
+    {
+     "wallet": "0xde9f7f4e77a1595623ceb58e469f776257ccd43c",
+     "n1": 130,
+     "n2": 236
+    },
+    {
+     "wallet": "0xfbe49f06348d605b47ec2d681569f479c8c8f12f",
+     "n1": 90,
+     "n2": 428
+    }
+   ],
+   "not_in": []
+  },
+  "wta": {
+   "passers_total": 5,
+   "in_intersection": 5,
+   "not_in_intersection": 0,
+   "in": [
+    {
+     "wallet": "0x2652dd1140c3b9e69c8852264cf8dbe727672a1d",
+     "n1": 269,
+     "n2": 93
+    },
+    {
+     "wallet": "0x9663a1bc594a019693631f39ed50e03496185b70",
+     "n1": 55,
+     "n2": 78
+    },
+    {
+     "wallet": "0x972bf37cae72a169e17ae0e6179821d5778b78ba",
+     "n1": 532,
+     "n2": 283
+    },
+    {
+     "wallet": "0xa509ae942ac8d8bc3f8c5df30cb6ae2c9b13ae46",
+     "n1": 506,
+     "n2": 396
+    },
+    {
+     "wallet": "0xde9f7f4e77a1595623ceb58e469f776257ccd43c",
+     "n1": 117,
+     "n2": 140
+    }
+   ],
+   "not_in": []
+  }
+ }
+}
