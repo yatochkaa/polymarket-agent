@@ -1,0 +1,75 @@
+[env] python 3.13.5 numpy 2.3.1
+[in] artifact: C:\Users\awf\Desktop\test\data\collect_window_2026-02-01_2026-04-28.json
+[in] using funnel_a: accumulate_pairs / filter1_pass / screen_one (no local clustering)
+[cfg] MIN_MATCHES=100 MIN_DAYS=60 TIERS=('atp', 'wta')
+[cfg] split-half r: atp=0.6474 wta=0.6104
+[in] pairs accumulated: 440848
+[f1] tier=atp candidates passing filter 1: 224
+[f1] tier=wta candidates passing filter 1: 95
+[mean_tier] tier=atp n_candidates=224 mean_of_wallet_means=-0.000201845657 (median=-0.000723493669 min=-0.0296967727 max=0.0258265263)
+[mean_tier] tier=wta n_candidates=95 mean_of_wallet_means=-0.0020463506 (median=-0.00257634884 min=-0.0173722568 max=0.0327453424)
+[in] candidate tier-rows: 14 distinct wallets: 12
+[calc] atp 0x200ffb57 n=1163 edge=0.0113757 edge_exp=0.00729348 se_naive=0.00156465 se_cl=0.00248394 ratio=1.5875 win=day   t_cl=4.58 n_naive=198 n_cl=499.1 n_shr=481.7 n_both=1214
+[calc] atp 0x204f72f3 n=1008 edge=0.0127071 edge_exp=0.0081554 se_naive=0.00147679 se_cl=0.00325957 ratio=2.2072 win=day   t_cl=3.898 n_naive=122.5 n_cl=596.9 n_shr=297.5 n_both=1449
+[calc] atp 0x3d7817cc n= 176 edge=0.0248267 edge_exp=0.0160017 se_naive=0.00573303 se_cl=0.00731787 ratio=1.2764 win=day   t_cl=3.393 n_naive=84.47 n_cl=137.6 n_shr=203.3 n_both=331.3
+[calc] atp 0x70f96881 n= 559 edge=0.021643 edge_exp=0.0139405 se_naive=0.00265765 se_cl=0.00416506 ratio=1.5672 win=day   t_cl=5.196 n_naive=75.86 n_cl=186.3 n_shr=182.8 n_both=449.1
+[calc] atp 0xa509ae94 n=1600 edge=0.00824904 edge_exp=0.00526926 se_naive=0.0012081 se_cl=0.00149468 ratio=1.2372 win=day   t_cl=5.519 n_naive=308.9 n_cl=472.8 n_shr=756.9 n_both=1159
+[calc] atp 0xc4dbd563 n= 464 edge=0.0152465 edge_exp=0.00979943 se_naive=0.0030863 se_cl=0.0030863 ratio=1.0000 win=match t_cl=4.94 n_naive=171.1 n_cl=171.1 n_shr=414.2 n_both=414.2
+[calc] atp 0xdbdd4515 n= 424 edge=0.0114276 edge_exp=0.00732707 se_naive=0.0033233 se_cl=0.00359229 ratio=1.0809 win=cgm   t_cl=3.181 n_naive=322.7 n_cl=377.1 n_shr=785 n_both=917.3
+[calc] atp 0xde9f7f4e n= 366 edge=0.0198244 edge_exp=0.0127632 se_naive=0.00371326 se_cl=0.00495785 ratio=1.3352 win=day   t_cl=3.999 n_naive=115.6 n_cl=206 n_shr=278.8 n_both=497
+[calc] atp 0xfbe49f06 n= 518 edge=0.0119356 edge_exp=0.00765596 se_naive=0.0027842 se_cl=0.00306371 ratio=1.1004 win=day   t_cl=3.896 n_naive=253.7 n_cl=307.2 n_shr=616.6 n_both=746.6
+[calc] wta 0x2652dd11 n= 362 edge=0.0156262 edge_exp=0.00874098 se_naive=0.00345005 se_cl=0.00345005 ratio=1.0000 win=match t_cl=4.529 n_naive=158.8 n_cl=158.8 n_shr=507.6 n_both=507.6
+[calc] wta 0x9663a1bc n= 133 edge=0.0175661 edge_exp=0.00992512 se_naive=0.0038739 se_cl=0.0046045 ratio=1.1886 win=day   t_cl=3.815 n_naive=58.22 n_cl=82.24 n_shr=182.4 n_both=257.6
+[calc] wta 0x972bf37c n= 815 edge=0.00674825 edge_exp=0.00332187 se_naive=0.00196953 se_cl=0.00197762 ratio=1.0041 win=day   t_cl=3.412 n_naive=624.8 n_cl=629.9 n_shr=2578 n_both=2600
+[calc] wta 0xa509ae94 n= 902 edge=0.0102593 edge_exp=0.00546504 se_naive=0.00199278 se_cl=0.00260838 ratio=1.3089 win=day   t_cl=3.933 n_naive=306.3 n_cl=524.8 n_shr=1079 n_both=1849
+[calc] wta 0xde9f7f4e n= 257 edge=0.0327453 edge_exp=0.0191905 se_naive=0.00535074 se_cl=0.00968242 ratio=1.8095 win=day   t_cl=3.382 n_naive=61.76 n_cl=202.2 n_shr=179.8 n_both=588.8
+
+=== SE ratio clustered/naive ===
+  median=1.25683 min=1 p25=1.0858 p75=1.50919 max=2.20719
+  winning SE variant: {'day': 11, 'match': 2, 'cgm': 1}
+  rows where clustered SE is LARGER than naive: 13 of 14
+
+=== SHRINKAGE ===
+  edge_expected/edge_observed: median=0.641158 min=0.492257 max=0.644533
+  tier=atp mean_tier=-0.000201845657 r=0.6474  observed edge med=0.0127071 -> expected med=0.0081554
+  tier=wta mean_tier=-0.0020463506 r=0.6104  observed edge med=0.0156262 -> expected med=0.00874098
+
+=== REQUIRED n for t=3, four variants ===
+  n_naive      median=   164.967 min=   58.2155 max=   624.802  (rows=14)
+  n_clustered  median=   256.594 min=   82.2443 max=   629.947  (rows=14)
+  n_shrunk     median=   447.968 min=   179.817 max=   2578.45  (rows=14)
+  n_both       median=   667.685 min=   257.625 max=   2599.68  (rows=14)
+
+=== EIGHT LIVE WALLETS: final required n (n_both) ===
+  0xde9f7f4e atp n_window= 366 n_both=   497.043  (n_naive=115.567)
+  0xde9f7f4e wta n_window= 257 n_both=   588.805  (n_naive=61.7596)
+  0xa509ae94 atp n_window=1600 n_both=   1158.67  (n_naive=308.858)
+  0xa509ae94 wta n_window= 902 n_both=   1849.29  (n_naive=306.286)
+  0xdbdd4515 atp n_window= 424 n_both=   917.257  (n_naive=322.727)
+  0x204f72f3 atp n_window=1008 n_both=   1449.21  (n_naive=122.532)
+  0x9663a1bc wta n_window= 133 n_both=   257.625  (n_naive=58.2155)
+  0xfbe49f06 atp n_window= 518 n_both=   746.564  (n_naive=253.677)
+  0x70f96881 atp n_window= 559 n_both=   449.099  (n_naive=75.8606)
+  0x3d7817cc atp n_window= 176 n_both=    331.28  (n_naive=84.4666)
+  across 8 live wallets, best-tier n_both: median=621.804 min=257.625 max=1449.21
+
+[out] power_inputs_clustered.json written
+[cfg] window span days=86 | forward horizon 2026-08-06..2026-11-06 = 92 days
+
+wallet     tier  n_win  pairs/d     n_both proj_pairs     cover verdict
+0xde9f7f4e atp     366    4.256      497.0      391.5     0.788 NOT reachable (needs 117 days)
+0xde9f7f4e wta     257    2.988      588.8      274.9     0.467 NOT reachable (needs 197 days)
+0xde9f7f4e all     623    7.244      497.0      666.5     1.341 pooled-both-tiers (needs 69 days)
+0xa509ae94 atp    1600   18.605     1158.7     1711.6     1.477 reachable (needs 62 days)
+0xa509ae94 wta     902   10.488     1849.3      964.9     0.522 NOT reachable (needs 176 days)
+0xa509ae94 all    2502   29.093     1158.7     2676.6     2.310 pooled-both-tiers (needs 40 days)
+0xdbdd4515 atp     424    4.930      917.3      453.6     0.494 NOT reachable (needs 186 days)
+0x204f72f3 atp    1008   11.721     1449.2     1078.3     0.744 NOT reachable (needs 124 days)
+0x9663a1bc wta     133    1.547      257.6      142.3     0.552 NOT reachable (needs 167 days)
+0xfbe49f06 atp     518    6.023      746.6      554.1     0.742 NOT reachable (needs 124 days)
+0x70f96881 atp     559    6.500      449.1      598.0     1.332 reachable (needs 69 days)
+0x3d7817cc atp     176    2.047      331.3      188.3     0.568 NOT reachable (needs 162 days)
+
+[summary] tier-rows for live wallets: 10 | reachable by 2026-11-06: 2 | not reachable: 8
+[summary] coverage (projected/required): median=0.6553 min=0.4669 max=1.477
+[out] feasibility appended to power_inputs_clustered.json
