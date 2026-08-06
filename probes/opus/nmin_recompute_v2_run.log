@@ -1,0 +1,120 @@
+[sha256] collect_window_v1.py: FAE5999CC9EEBEAE26087BFEDF449A86DA1156F8C566AE6976C5D2A937543D73
+[spread] markets (atp/wta complete): 4067
+[spread] 500/4067 markets | pairs 54978 | 7.2s (0.014s/mkt)
+[spread] 1000/4067 markets | pairs 108594 | 15.3s (0.015s/mkt)
+[spread] 1500/4067 markets | pairs 165269 | 23.5s (0.016s/mkt)
+[spread] 2000/4067 markets | pairs 220233 | 30.5s (0.015s/mkt)
+[spread] 2500/4067 markets | pairs 275032 | 37.9s (0.015s/mkt)
+[spread] 3000/4067 markets | pairs 329426 | 45.8s (0.015s/mkt)
+[spread] 3500/4067 markets | pairs 388027 | 54.0s (0.015s/mkt)
+[spread] 4000/4067 markets | pairs 443208 | 61.8s (0.015s/mkt)
+[spread] pass done: 4067 markets, 449342 pairs with entry, 62.8s
+[spread] pairs with prematch (net!=0 filtered): 453424
+
+[tokens] pairs with 1 active token: 445557 | with 2 active tokens: 3785 | total 449342
+
+=== CHECK 1: clip applied INSIDE token, size-weighted average AFTER ===
+  D=60: defined=250302 | 1-token rows=248062 viol=0 | 2-token rows=2240 viol=0
+  D=10: defined=130719 | 1-token rows=129420 viol=0 | 2-token rows=1299 viol=0
+  OK: clip == max(raw,0) on 1-token pairs and == sum(w*max(raw_a,0))/sum(w) on 2-token pairs.
+
+=== CHANGE 1 IMPACT (new clip-inside vs old clip-after) ===
+  D=60: 2-token pairs=2240 | rows where new clip != old clip=693 (all 2-token: True) | max |delta|=0.0572423189
+  D=10: 2-token pairs=1299 | rows where new clip != old clip=436 (all 2-token: True) | max |delta|=0.0361343416
+
+=== CHANGE 2: pool sizes per pair (D=10 / D=60) ===
+  pool10: min=0 max=3895 sum=10781060 | pool60: min=0 max=4204 sum=23006537 | pairs with pool60<pool10 (must be 0): 0
+
+[decisive] allowances loaded: 319
+[decisive] decisive-set pairs (control 81941): 81941
+
+=== CONTROL (N_min=20) ===
+  measurable D=60: 12779 (control 12779) -> OK
+  |M*|: 5189 (control 5189) -> OK
+  decisive set: 81941 (control 81941) -> OK
+
+=== PER-THRESHOLD REPORT (six thresholds; D=60 unless stated) ===
+
+--- N_min = 1 ---
+  1) measurable pairs total: 250302
+  2) measurable in decisive set: 38670 | share of 81941: 0.471924922
+  3) ATP: n=177509 median=0.005 p90=0.0134605586 | WTA: n=72793 median=0.005 p90=0.0141413946 | all: n=250302 median=0.005
+  4) frac raw<0 = 0.143274924 (35862/250302) | frac clip==0 = 0.143147078 (35830/250302)  [same set]
+  5) |M*| = 130719 | median(spc60|M*) = 0.00505646395 | median(spc10|M*) = 0.00499999978 | ratio = 1.01129283
+  6) n_pool_diff = 247522 | n_band (trades in D10..D60 band) = 10555817 | guard NOT MATCHED (reported as-is, not adjusted)
+     band diagnostics: pairs with >=1 band trade = 247522 (equals n_pool_diff: True) | band trades per such pair: mean=42.6459749 max=2939
+     old-order clip (for CHANGE 1 comparison): ATP median=0.005 p90=0.0134513581 | WTA median=0.005 p90=0.0141078638 | 2-token measurable=2240 changed=693
+
+--- N_min = 2 ---
+  1) measurable pairs total: 165946
+  2) measurable in decisive set: 23588 | share of 81941: 0.287865659
+  3) ATP: n=119303 median=0.0050488043 p90=0.0141696642 | WTA: n=46643 median=0.00501296021 p90=0.0151899494 | all: n=165946 median=0.00503696081
+  4) frac raw<0 = 0.153140178 (25413/165946) | frac clip==0 = 0.151784315 (25188/165946)  [same set]
+  5) |M*| = 70537 | median(spc60|M*) = 0.00511761465 | median(spc10|M*) = 0.00499999987 | ratio = 1.02352296
+  6) n_pool_diff = 164476 | n_band (trades in D10..D60 band) = 9015665 | guard NOT MATCHED (reported as-is, not adjusted)
+     band diagnostics: pairs with >=1 band trade = 164476 (equals n_pool_diff: True) | band trades per such pair: mean=54.8144714 max=2939
+     old-order clip (for CHANGE 1 comparison): ATP median=0.00504230819 p90=0.0141463979 | WTA median=0.0050092638 p90=0.0151303508 | 2-token measurable=1592 changed=533
+
+--- N_min = 3 ---
+  1) measurable pairs total: 119984
+  2) measurable in decisive set: 16247 | share of 81941: 0.198276809
+  3) ATP: n=87149 median=0.00503450193 p90=0.0147505546 | WTA: n=32835 median=0.00514621561 p90=0.0169222099 | all: n=119984 median=0.00505654058
+  4) frac raw<0 = 0.163330111 (19597/119984) | frac clip==0 = 0.161629884 (19393/119984)  [same set]
+  5) |M*| = 46935 | median(spc60|M*) = 0.00518827768 | median(spc10|M*) = 0.00499999998 | ratio = 1.03765554
+  6) n_pool_diff = 118978 | n_band (trades in D10..D60 band) = 7861731 | guard NOT MATCHED (reported as-is, not adjusted)
+     band diagnostics: pairs with >=1 band trade = 118978 (equals n_pool_diff: True) | band trades per such pair: mean=66.0771823 max=2939
+     old-order clip (for CHANGE 1 comparison): ATP median=0.00502644011 p90=0.0147257765 | WTA median=0.0051320548 p90=0.0167341072 | 2-token measurable=1237 changed=441
+
+--- N_min = 5 ---
+  1) measurable pairs total: 71550
+  2) measurable in decisive set: 9036 | share of 81941: 0.110274466
+  3) ATP: n=52654 median=0.00505119646 p90=0.0164142982 | WTA: n=18896 median=0.00526685591 p90=0.0218537399 | all: n=71550 median=0.00508635538
+  4) frac raw<0 = 0.181830887 (13010/71550) | frac clip==0 = 0.17966457 (12855/71550)  [same set]
+  5) |M*| = 27282 | median(spc60|M*) = 0.00513453752 | median(spc10|M*) = 0.005 | ratio = 1.0269075
+  6) n_pool_diff = 70915 | n_band (trades in D10..D60 band) = 6226020 | guard NOT MATCHED (reported as-is, not adjusted)
+     band diagnostics: pairs with >=1 band trade = 70915 (equals n_pool_diff: True) | band trades per such pair: mean=87.7955299 max=2939
+     old-order clip (for CHANGE 1 comparison): ATP median=0.00503906027 p90=0.0163718978 | WTA median=0.00524655318 p90=0.0217113044 | 2-token measurable=858 changed=339
+
+--- N_min = 10 ---
+  1) measurable pairs total: 30357
+  2) measurable in decisive set: 3332 | share of 81941: 0.0406634042
+  3) ATP: n=22188 median=0.00518987105 p90=0.0288929266 | WTA: n=8169 median=0.005 p90=0.0337956806 | all: n=30357 median=0.00510605096
+  4) frac raw<0 = 0.233850512 (7099/30357) | frac clip==0 = 0.230161083 (6987/30357)  [same set]
+  5) |M*| = 12075 | median(spc60|M*) = 0.005 | median(spc10|M*) = 0.005 | ratio = 1
+  6) n_pool_diff = 30069 | n_band (trades in D10..D60 band) = 4193740 | guard NOT MATCHED (reported as-is, not adjusted)
+     band diagnostics: pairs with >=1 band trade = 30069 (equals n_pool_diff: True) | band trades per such pair: mean=139.470551 max=2939
+     old-order clip (for CHANGE 1 comparison): ATP median=0.005150076 p90=0.028787752 | WTA median=0.005 p90=0.0337606467 | 2-token measurable=474 changed=222
+
+--- N_min = 20 ---
+  1) measurable pairs total: 12779
+  2) measurable in decisive set: 1210 | share of 81941: 0.0147667224
+  3) ATP: n=9317 median=0.005 p90=0.0495666051 | WTA: n=3462 median=0.00471732884 p90=0.0510707037 | all: n=12779 median=0.005
+  4) frac raw<0 = 0.311135457 (3976/12779) | frac clip==0 = 0.304718679 (3894/12779)  [same set]
+  5) |M*| = 5189 | median(spc60|M*) = 0.005 | median(spc10|M*) = 0.005 | ratio = 1
+  6) n_pool_diff = 12666 | n_band (trades in D10..D60 band) = 2789148 | guard NOT MATCHED (reported as-is, not adjusted)
+     band diagnostics: pairs with >=1 band trade = 12666 (equals n_pool_diff: True) | band trades per such pair: mean=220.207485 max=2939
+     old-order clip (for CHANGE 1 comparison): ATP median=0.005 p90=0.0495666051 | WTA median=0.00463030086 p90=0.0509608821 | 2-token measurable=262 changed=151
+
+=== DISTINCTNESS GUARD (six rows must differ; frozen/copied mask would repeat) ===
+  n_meas      : ['250302', '165946', '119984', '71550', '30357', '12779'] -> OK-distinct
+  n_dec       : ['38670', '23588', '16247', '9036', '3332', '1210'] -> OK-distinct
+  n_mstar     : ['130719', '70537', '46935', '27282', '12075', '5189'] -> OK-distinct
+  n_pool_diff : ['247522', '164476', '118978', '70915', '30069', '12666'] -> OK-distinct
+  med_atp     : ['0.005', '0.0050488043', '0.00503450193', '0.00505119646', '0.00518987105', '0.005'] -> REPEATED(5/6 uniq)
+  p90_atp     : ['0.0134605586', '0.0141696642', '0.0147505546', '0.0164142982', '0.0288929266', '0.0495666051'] -> OK-distinct
+  med_wta     : ['0.005', '0.00501296021', '0.00514621561', '0.00526685591', '0.005', '0.00471732884'] -> REPEATED(5/6 uniq)
+  p90_wta     : ['0.0141413946', '0.0151899494', '0.0169222099', '0.0218537399', '0.0337956806', '0.0510707037'] -> OK-distinct
+  frac_neg    : ['0.143274924', '0.153140178', '0.163330111', '0.181830887', '0.233850512', '0.311135457'] -> OK-distinct
+NOTE: repeated metric(s): ['med_atp', 'med_wta'] -- listed above with values; masks were recomputed per threshold (see n_meas).
+
+=== TIER MEDIAN TABLE (all six thresholds) ===
+  N_min | n_atp | median_atp | n_wta | median_wta | max|median-0.005|
+      1 | 177509 | 0.005        | 72793 | 0.005        | 3.20923843e-17
+      2 | 119303 | 0.0050488043 | 46643 | 0.00501296021 | 4.88042993e-05
+      3 | 87149 | 0.00503450193 | 32835 | 0.00514621561 | 0.000146215613
+      5 | 52654 | 0.00505119646 | 18896 | 0.00526685591 | 0.000266855908
+     10 | 22188 | 0.00518987105 |  8169 | 0.005        | 0.000189871055
+     20 |  9317 | 0.005        |  3462 | 0.00471732884 | 0.00028267116
+  no threshold among [1, 2, 3, 5, 10, 20] has a tier median departing from 0.005 by more than 0.0005
+[out] CSV written: C:\Users\awf\Desktop\test\probes\opus\spread_estimator_nmin_v2.csv
+[out] MD written: C:\Users\awf\Desktop\test\probes\opus\nmin_recompute_v2.md
