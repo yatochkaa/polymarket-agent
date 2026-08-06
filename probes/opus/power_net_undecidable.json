@@ -1,0 +1,11 @@
+{
+ "gross_delta_day_cluster": 0.011551564792601,
+ "bracket_width_day_cluster": 0.005360713209454251,
+ "bracket_width_gt_gross": false,
+ "net_shares": -0.004299228834867896,
+ "t_shares": -3.455646870092202,
+ "net_notional": 0.0010614843745863562,
+ "t_notional": 0.8582786032865182,
+ "straddles_zero": true,
+ "note": "diagnostic only; formal verdict belongs to the coordinator"
+}

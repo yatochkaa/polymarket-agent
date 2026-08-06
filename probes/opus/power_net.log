@@ -1,0 +1,90 @@
+[env] python 3.13.5 numpy 2.3.1 (no scipy: t-quantile implemented locally)
+[check] t_sf(3, 1e6)=0.0013499313 vs normal 0.001349898
+[cfg] one-sided alpha targets: t=3 -> 0.001349898 | t=2.5 -> 0.0062096653
+[cfg] cost per share = 0.005 + 0.05*p*(1-p)  [shares basis, conservative branch]
+[mean_tier] atp=-0.000201845657 wta=-0.0020463506
+
+=== COST COMPONENTS (per share) ===
+  entry price p: med=0.51 p10=0.274967 p90=0.742302
+  taker fee: med=0.0117596015 mean=0.01089261 max=0.0125
+  total cost: med=0.0167596015 mean=0.01589261 (spread 0.005 is 29.83% of median cost)
+  gross med=0.01 -> net med=-0.00652
+
+=== NET EDGE, SE (cross-wallet clustering), t ===
+  equal-weight observed: mean_day=-0.00429922883 se_match=0.000737832374 se_day=0.00124411695 se_cgm=0.00101754038 SE=0.00124411695 (day) t=-3.45565 clusters_day=86
+  equal-weight shrunk  : mean_day=-0.00883473169 se_match=0.000467924615 se_day=0.000789651938 se_cgm=0.00064970667 SE=0.000789651938 (day) t=-11.1881 clusters_day=86
+  size-weighted observed: mean=0.00880696797 se_day=0.00576567235 se_match=0.00647722833 SE=0.00647722833 (match) t=1.35968 clusters=3325
+  size-weighted shrunk  : mean=-0.000468479502 se_day=0.00368447752 se_match=0.0041014484 SE=0.0041014484 (match) t=-0.114223 clusters=3325
+
+=== REQUIRED n: normal threshold vs Student t (df = clusters - 1) ===
+  equal    observed df=85: crit t=3 -> 3.09067 (normal 3) | crit t=2.5 -> 2.5544 (normal 2.5)
+  equal    shrunk   df=85: crit t=3 -> 3.09067 (normal 3) | crit t=2.5 -> 2.5544 (normal 2.5)
+  weighted observed df=3324: crit t=3 -> 3.00226 (normal 3) | crit t=2.5 -> 2.50136 (normal 2.5)
+  weighted shrunk   df=3324: crit t=3 -> 3.00226 (normal 3) | crit t=2.5 -> 2.50136 (normal 2.5)
+
+  scheme    edge      target crit_kind     crit   n_required      days window_ok
+  equal     observed  t=3    normal      3.0000         NO n     never net edge <= 0: no sample size reaches positive t
+  equal     observed  t=3    student_t   3.0907         NO n     never net edge <= 0: no sample size reaches positive t
+  equal     observed  t=2.5  normal      2.5000         NO n     never net edge <= 0: no sample size reaches positive t
+  equal     observed  t=2.5  student_t   2.5544         NO n     never net edge <= 0: no sample size reaches positive t
+  equal     shrunk    t=3    normal      3.0000         NO n     never net edge <= 0: no sample size reaches positive t
+  equal     shrunk    t=3    student_t   3.0907         NO n     never net edge <= 0: no sample size reaches positive t
+  equal     shrunk    t=2.5  normal      2.5000         NO n     never net edge <= 0: no sample size reaches positive t
+  equal     shrunk    t=2.5  student_t   2.5544         NO n     never net edge <= 0: no sample size reaches positive t
+  weighted  observed  t=3    normal      3.0000      36681.9     418.7 False
+  weighted  observed  t=3    student_t   3.0023      36737.1     419.3 False
+  weighted  observed  t=2.5  normal      2.5000      25473.5     290.7 False
+  weighted  observed  t=2.5  student_t   2.5014      25501.3     291.1 False
+  weighted  shrunk    t=3    normal      3.0000         NO n     never net edge <= 0: no sample size reaches positive t
+  weighted  shrunk    t=3    student_t   3.0023         NO n     never net edge <= 0: no sample size reaches positive t
+  weighted  shrunk    t=2.5  normal      2.5000         NO n     never net edge <= 0: no sample size reaches positive t
+  weighted  shrunk    t=2.5  student_t   2.5014         NO n     never net edge <= 0: no sample size reaches positive t
+
+=== BLOCK BOOTSTRAP BY DAY (5000 reps, seed 20260806) ===
+  day blocks: 86 | pairs: 7535 | block size: med=84.5 min=18 max=231
+  equal     observed  point=-0.00429922883 boot_mean=-0.00429776545 boot_se=0.00122994553 analytic_se=0.00124411695 ratio=0.9886 95%CI=[-0.00672534429, -0.00183938376] P(edge<=0)=1 t_boot=-3.495
+  equal     shrunk    point=-0.00883473169 boot_mean=-0.00883563093 boot_se=0.000787864298 analytic_se=0.000789651938 ratio=0.9977 95%CI=[-0.0103925384, -0.007256168] P(edge<=0)=1 t_boot=-11.21
+  weighted  observed  point=0.00880696797 boot_mean=0.00880220059 boot_se=0.00578148842 analytic_se=0.00647722833 ratio=0.8926 95%CI=[-0.00257079637, 0.0197943313] P(edge<=0)=0.0662 t_boot=1.523
+  weighted  shrunk    point=-0.000468479502 boot_mean=-0.000500570845 boot_se=0.0036010281 analytic_se=0.0041014484 ratio=0.8780 95%CI=[-0.00761487642, 0.00657417049] P(edge<=0)=0.56 t_boot=-0.1301
+
+=== BOOTSTRAP vs ANALYTIC: does it diverge? ===
+  boot_se / analytic_se: min=0.8780 max=0.9977
+  verdict: AGREES -> analytic SE is adequate, bootstrap stays as sensitivity (threshold: any ratio outside 0.80..1.25)
+
+=== REQUIRED n under bootstrap SE (Student t crit) ===
+  equal     observed  t=3    crit=3.0907 n_required=        NO n days=   never  NET EDGE <= 0
+  equal     observed  t=2.5  crit=2.5544 n_required=        NO n days=   never  NET EDGE <= 0
+  equal     shrunk    t=3    crit=3.0907 n_required=        NO n days=   never  NET EDGE <= 0
+  equal     shrunk    t=2.5  crit=2.5544 n_required=        NO n days=   never  NET EDGE <= 0
+  weighted  observed  t=3    crit=3.0023 n_required=     29268.9 days=   334.1 window_ok=False
+  weighted  observed  t=2.5  crit=2.5014 n_required=     20317.2 days=   231.9 window_ok=False
+  weighted  shrunk    t=3    crit=3.0023 n_required=        NO n days=   never  NET EDGE <= 0
+  weighted  shrunk    t=2.5  crit=2.5014 n_required=        NO n days=   never  NET EDGE <= 0
+
+=== PREREGISTRATION LINE (equal weight, shrunk edge, bootstrap SE, Student t) ===
+  t=3    NO required n exists: net edge is NEGATIVE (-0.00883473169). Sample size cannot repair a negative point estimate.
+  t=2.5  NO required n exists: net edge is NEGATIVE (-0.00883473169). Sample size cannot repair a negative point estimate.
+
+=== BREAK-EVEN DIAGNOSTIC ===
+  median cost=0.0167596015 | day-cluster gross mean=0.0115515648 | shortfall=0.00520803674
+  share of pairs with net>0: 42.93% | with gross>0: 58.59%
+  sensitivity, NOTIONAL fee basis phi_N=0.05*p^2*(1-p): median cost=0.0111215025 net mean=0.00106148437 t=0.858279 -> POSITIVE under notional basis
+  sensitivity, spread only (no fee): net mean=0.00655156479
+  sensitivity, fee only (no spread): net mean=0.000700771165
+
+[out] power_net.json written
+=== UNDECIDABLE CHECK (PREREGISTRATION.md:44-48, POPRAVKA13 2.2) ===
+  gross_delta (day-cluster mean) = 0.0115515648
+  bracket_width per share: mean=0.0053891781 median=0.00586679147 p90=0.00734265
+  bracket_width (day-cluster mean) = 0.00536071321
+  test: bracket_width > gross_delta ? 0.00536071321 > 0.0115515648 -> False
+
+  net edge under UPPER (shares) fee: -0.00429922883
+  net edge under LOWER (notional) fee: 0.00106148437
+  t under shares  = -3.45565
+  t under notional= 0.858279
+
+  INTERPRETATION: the two fee bases straddle zero -> the sign of net edge is
+  not identified by data, it is decided by the unresolved E2 question (fee basis).
+  Preregistration calls this outcome UNDECIDABLE and checks it BEFORE GO/NO-GO.
+[out] power_net_undecidable.json
